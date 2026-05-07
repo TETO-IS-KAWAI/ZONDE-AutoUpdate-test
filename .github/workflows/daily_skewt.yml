@@ -1,0 +1,47 @@
+name: 🌡️ Daily Skew-T Log-P Update
+
+on:
+  schedule:
+    # 매일 한국 시간 오전 9시 (UTC 00:00) 실행
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 수동 실행 버튼도 활성화
+
+permissions:
+  contents: write  # README / docs 파일 push 권한
+
+jobs:
+  update-skewt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 레포지토리 체크아웃
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 전체 히스토리 (커밋 메시지용)
+
+      - name: 🐍 Python 3.11 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 의존성 설치
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas matplotlib metpy numpy
+
+      - name: 🌡️ Skew-T 단열선도 생성
+        env:
+          KMA_API_URL: ${{ secrets.KMA_API_URL }}
+        run: |
+          python skewt_plot.py
+
+      - name: 📤 변경사항 커밋 & 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ README.md
+          # 변경사항이 있을 때만 커밋
+          git diff --staged --quiet || git commit -m "🌡️ Auto-update Skew-T diagram [$(date +'%Y-%m-%d %H:%M KST' -d '+9 hours')]"
+          git push
