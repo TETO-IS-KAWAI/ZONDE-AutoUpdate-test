@@ -48,11 +48,11 @@ Actions 탭 → `Daily Skew-T Log-P Update` → **Run workflow**
 ---
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도
+### 최신 단열선도 (2026년 05월 08일 00:17 KST)
 
-> 아직 자동 생성이 실행되지 않았습니다.  
-> Actions 탭에서 **Run workflow** 를 눌러 첫 번째 그래프를 생성하세요.
+![CAPE](https://img.shields.io/badge/CAPE-6%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN--93%20J%2Fkg-blue)
 
+![Skew-T Log-P](docs/skewt_latest.png)
 <!-- SKEWT_AUTO_END -->
 
 ---
