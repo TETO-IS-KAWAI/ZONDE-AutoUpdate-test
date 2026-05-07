@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skew-T Log-P 단열선도 | 기상청 관측 자동화</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --orange:   #d29922;
+      --red:      #f85149;
+      --text:     #e6edf3;
+      --subtext:  #8b949e;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    header p {
+      color: var(--subtext);
+      margin-top: .4rem;
+      font-size: .95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 780px;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--subtext);
+      margin-bottom: 1rem;
+    }
+
+    /* 배지 행 */
+    .badges {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.2rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: #1c2128;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .3rem .9rem;
+      font-size: .85rem;
+    }
+    .badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    /* 그래프 */
+    #plot-img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    #plot-placeholder {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--subtext);
+      font-size: .9rem;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+    }
+
+    /* 파라미터 그리드 */
+    .param-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .8rem;
+    }
+    .param-item {
+      background: #1c2128;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .8rem 1rem;
+    }
+    .param-label { font-size: .75rem; color: var(--subtext); margin-bottom: .2rem; }
+    .param-value { font-size: 1.3rem; font-weight: 700; }
+    .cape-val { color: var(--orange); }
+    .cin-val  { color: var(--accent); }
+
+    /* 업데이트 시간 */
+    #update-time {
+      font-size: .85rem;
+      color: var(--subtext);
+      text-align: center;
+      margin-top: .5rem;
+    }
+
+    /* 새로고침 버튼 */
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 6px;
+      padding: .5rem 1.2rem;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      margin-top: 1rem;
+    }
+    .btn:hover { opacity: .85; }
+
+    footer {
+      color: var(--subtext);
+      font-size: .8rem;
+      text-align: center;
+      margin-top: 2rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* 로딩 애니메이션 */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .loading { animation: pulse 1.4s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌡️ Skew-T Log-P 단열선도</h1>
+    <p>기상청 API 허브 · 매일 자동 갱신</p>
+  </header>
+
+  <!-- 상태 배지 -->
+  <div class="card">
+    <div class="card-title">Status</div>
+    <div class="badges">
+      <div class="badge"><span class="dot" style="background:var(--green)"></span> 자동 갱신 활성</div>
+      <div class="badge" id="badge-date"><span class="dot" style="background:var(--accent)"></span> <span class="loading">로딩 중...</span></div>
+    </div>
+
+    <!-- 그래프 -->
+    <div id="plot-placeholder" class="loading">그래프 이미지를 불러오는 중...</div>
+    <img id="plot-img" src="" alt="Skew-T Log-P 단열선도" style="display:none" />
+
+    <div id="update-time"></div>
+    <a href="skewt_latest.png" download class="btn">⬇ PNG 다운로드</a>
+  </div>
+
+  <!-- CAPE / CIN 파라미터 -->
+  <div class="card">
+    <div class="card-title">Sounding Parameters</div>
+    <div class="param-grid">
+      <div class="param-item">
+        <div class="param-label">CAPE (대류 유효 위치 에너지)</div>
+        <div class="param-value cape-val" id="val-cape">—</div>
+        <div style="font-size:.75rem;color:var(--subtext);margin-top:.3rem">J/kg</div>
+      </div>
+      <div class="param-item">
+        <div class="param-label">CIN (대류 억제 에너지)</div>
+        <div class="param-value cin-val" id="val-cin">—</div>
+        <div style="font-size:.75rem;color:var(--subtext);margin-top:.3rem">J/kg</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank">기상청 API 허브</a> &nbsp;|&nbsp;
+       소스코드: <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank">GitHub</a></p>
+  </footer>
+
+  <script>
+    // meta.json 에서 최신 메타데이터 읽기
+    async function loadMeta() {
+      try {
+        const res  = await fetch(`meta.json?t=${Date.now()}`);
+        const meta = await res.json();
+
+        // 날짜 배지
+        document.getElementById('badge-date').innerHTML =
+          `<span class="dot" style="background:var(--accent)"></span>${meta.generated}`;
+
+        // CAPE / CIN
+        document.getElementById('val-cape').textContent = meta.cape.toLocaleString();
+        document.getElementById('val-cin').textContent  = meta.cin.toLocaleString();
+
+        // 업데이트 시간
+        document.getElementById('update-time').textContent =
+          `마지막 갱신: ${meta.generated}`;
+
+        return meta;
+      } catch(e) {
+        console.warn('meta.json 로드 실패:', e);
+        return null;
+      }
+    }
+
+    // 그래프 이미지 로드
+    function loadImage() {
+      const img = document.getElementById('plot-img');
+      const placeholder = document.getElementById('plot-placeholder');
+
+      img.onload = () => {
+        placeholder.style.display = 'none';
+        img.style.display = 'block';
+      };
+      img.onerror = () => {
+        placeholder.classList.remove('loading');
+        placeholder.textContent = '⚠ 그래프 이미지를 불러올 수 없습니다. 아직 생성 전이거나 오류가 발생했습니다.';
+      };
+      // 캐시 무효화 쿼리 추가
+      img.src = `skewt_latest.png?t=${Date.now()}`;
+    }
+
+    // 초기 실행
+    loadMeta();
+    loadImage();
+
+    // 5분마다 자동 새로고침 (Actions가 실행 중일 경우 대비)
+    setInterval(() => { loadMeta(); loadImage(); }, 300_000);
+  </script>
+</body>
+</html>
