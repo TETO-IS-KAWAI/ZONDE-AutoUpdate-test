@@ -143,7 +143,7 @@ def draw_skewt(params: dict, date_str: str, save_path: Path):
     skew.shade_cin (p, t, prof, facecolor="steelblue", alpha=0.25)
 
     # 특수 레벨 마커
-    marker_kw = dict(zorder=5, s=60, transform=skew.ax.get_transform("data"))
+    marker_kw = dict(zorder=5, s=60, transform=skew.ax.get_xaxis_transform())
     if params["lcl_p"] is not None:
         ax.scatter(
             params["lcl_t"].magnitude, params["lcl_p"].magnitude,
