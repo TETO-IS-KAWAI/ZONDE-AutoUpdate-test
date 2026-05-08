@@ -2,9 +2,10 @@ name: 🌡️ Daily Skew-T Log-P Update
 
 on:
   schedule:
-    # 매일 한국 시간 오전 9시 (UTC 00:00) 실행
     - cron: '0 0 * * *'
-  workflow_dispatch:  # 수동 실행 버튼도 활성화
+  workflow_dispatch:  # 수동 실행
+  push:               # 코드를 push(업로드)할 때마다 자동 실행 추가
+    branches: [ main ] # 메인 브랜치에 변경사항이 생기면 즉시 실행
 
 permissions:
   contents: write  # README / docs 파일 push 권한
