@@ -48,9 +48,9 @@ Actions 탭 → `Daily Skew-T Log-P Update` → **Run workflow**
 ---
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도 (2026년 05월 08일 11:36 KST)
+### 최신 단열선도 (2026년 05월 09일 01:18 KST)
 
-![CAPE](https://img.shields.io/badge/CAPE-71%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN--156%20J%2Fkg-blue)
+![CAPE](https://img.shields.io/badge/CAPE-0%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN-0%20J%2Fkg-blue)
 
 ![Skew-T Log-P](docs/skewt_latest.png)
 <!-- SKEWT_AUTO_END -->
