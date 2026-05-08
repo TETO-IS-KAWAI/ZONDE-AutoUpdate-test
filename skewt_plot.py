@@ -12,6 +12,24 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # GUI 없는 환경에서 실행
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+# --- 한글 폰트 설정 시작 ---
+# 시스템에 설치된 나눔바른고딕 폰트 경로 설정
+font_path = '/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf'
+
+# 만약 로컬 환경(Windows 등)에서도 실행한다면 경로를 체크하거나 예외처리를 합니다.
+if os.path.exists(font_path):
+    font_prop = fm.FontProperties(fname=font_path)
+    plt.rcParams['font.family'] = font_prop.get_name()
+else:
+    # 윈도우 환경인 경우 (예시)
+    plt.rcParams['font.family'] = 'Malgun Gothic'
+
+# 마이너스 기호 깨짐 방지
+plt.rcParams['axes.unicode_minus'] = False
+# --- 한글 폰트 설정 끝 ---
+
 import matplotlib.patches as mpatches
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
