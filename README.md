@@ -1,16 +1,11 @@
-# 🌡️ ZONDE API Analyze
-
+# ZONDE API Analyze
 기상청 API 허브를 이용한 **Skew-T Log-P 단열선도** 자동 생성 프로젝트
 
-[![Daily Skew-T Update](https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze/actions/workflows/daily_skewt.yml/badge.svg)](https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze/actions/workflows/daily_skewt.yml)
-
-## 🌐 웹페이지로 보기
-
-👉 **[https://teto-is-kawai.github.io/ZONDE-API-Analyze](https://teto-is-kawai.github.io/ZONDE-API-Analyze)**
+## 웹페이지로 보기
+**[LINK](https://teto-is-kawai.github.io/ZONDE-AutoUpdate-test)**
 
 ---
-
-## ⚙️ 설치 & 설정 방법
+## 설치 & 설정 방법
 
 ### 1. GitHub Secret 등록
 
@@ -27,11 +22,11 @@ Branch: `main` / Folder: `/ (docs)`  선택 후 Save
 
 ### 3. 수동 실행
 
-Actions 탭 → `Daily Skew-T Log-P Update` → **Run workflow**
+Actions 탭 **Run workflow**
 
 ---
 
-## 📁 파일 구조
+## 파일 구조
 
 ```
 .
@@ -57,7 +52,7 @@ Actions 탭 → `Daily Skew-T Log-P Update` → **Run workflow**
 
 ---
 
-## 📜 사용 라이브러리
+## 사용 라이브러리
 
 - [MetPy](https://unidata.github.io/MetPy/) — 기상 데이터 분석 및 단열선도
 - [matplotlib](https://matplotlib.org/) — 시각화
