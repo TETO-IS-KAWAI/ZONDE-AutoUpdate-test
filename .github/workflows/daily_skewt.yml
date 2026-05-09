@@ -49,6 +49,19 @@ jobs:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
         run: python skewt_plot.py
 
+      - name: 🔍 생성 파일 확인
+        run: |
+          echo "=== docs/ 파일 목록 ==="
+          ls -lh docs/
+          echo "=== PNG 파일 확인 ==="
+          for f in docs/skewt_dark.png docs/skewt_light.png docs/skewt_latest.png; do
+            if [ -f "$f" ]; then
+              echo "✅ $f ($(du -h $f | cut -f1))"
+            else
+              echo "❌ $f 없음"
+            fi
+          done
+
       - name: 📤 커밋 & 푸시
         run: |
           git config user.name  "github-actions[bot]"
