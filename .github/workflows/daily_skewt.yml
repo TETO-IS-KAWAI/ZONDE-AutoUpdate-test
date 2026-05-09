@@ -1,38 +1,38 @@
 name: 🌡️ Daily Skew-T Log-P Update
 
-# ── 트리거 ────────────────────────────────────────────────────────────────────
 on:
   schedule:
     - cron: '0 0 * * *'   # 매일 UTC 00:00 = KST 09:00
-  workflow_dispatch:        # Actions 탭에서 수동 실행 가능
+  workflow_dispatch:
 
-# docs/ 와 README.md 를 push 하기 위한 쓰기 권한
 permissions:
   contents: write
 
-# ── 작업 ──────────────────────────────────────────────────────────────────────
 jobs:
   update-skewt:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      # 1. 소스 체크아웃
       - name: 📥 체크아웃
         uses: actions/checkout@v4
 
-      # 2. Python 환경 설정
+      - name: 🔤 한글 폰트 설치 (Noto Sans CJK — SIL OFL 1.1)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          fc-cache -fv
+          echo "[✓] 폰트 설치 완료"
+
       - name: 🐍 Python 3.11 설정
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip            # requirements.txt 기반 pip 캐시
+          cache: pip
 
-      # 3. 의존성 설치
       - name: 📦 의존성 설치
         run: pip install -r requirements.txt
 
-      # 4. Secret 등록 여부 사전 확인
       - name: 🔑 Secret 확인
         env:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
@@ -44,19 +44,16 @@ jobs:
           fi
           echo "✅ KMA_API_URL 확인됨"
 
-      # 5. 단열선도 생성 (메인 스크립트 실행)
       - name: 🌡️ 단열선도 생성
         env:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
         run: python skewt_plot.py
 
-      # 6. 생성된 파일 커밋 & 푸시
       - name: 📤 커밋 & 푸시
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/ README.md
-          # 실제 변경이 있을 때만 커밋
           if git diff --staged --quiet; then
             echo "변경사항 없음 — 커밋 생략"
           else
