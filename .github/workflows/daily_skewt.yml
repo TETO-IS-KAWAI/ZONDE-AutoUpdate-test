@@ -1,55 +1,66 @@
 name: 🌡️ Daily Skew-T Log-P Update
 
+# ── 트리거 ────────────────────────────────────────────────────────────────────
 on:
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:  # 수동 실행
-  push:               # 코드를 push(업로드)할 때마다 자동 실행 추가
-    branches: [ main ] # 메인 브랜치에 변경사항이 생기면 즉시 실행
+    - cron: '0 0 * * *'   # 매일 UTC 00:00 = KST 09:00
+  workflow_dispatch:        # Actions 탭에서 수동 실행 가능
 
+# docs/ 와 README.md 를 push 하기 위한 쓰기 권한
 permissions:
-  contents: write  # README / docs 파일 push 권한
+  contents: write
 
+# ── 작업 ──────────────────────────────────────────────────────────────────────
 jobs:
   update-skewt:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    steps:
-      - name: 📥 레포지토리 체크아웃
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 전체 히스토리 (커밋 메시지용)
 
-      - name: 🐍 Python 3.11 설치
+    steps:
+      # 1. 소스 체크아웃
+      - name: 📥 체크아웃
+        uses: actions/checkout@v4
+
+      # 2. Python 환경 설정
+      - name: 🐍 Python 3.11 설정
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: pip            # requirements.txt 기반 pip 캐시
 
+      # 3. 의존성 설치
       - name: 📦 의존성 설치
-        run: |
-          pip install --upgrade pip
-          pip install requests pandas matplotlib metpy numpy
-          
-      - name: 폰트 설치 (나눔폰트)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-nanum 
-          sudo fc-cache -fv
-          
-      - name: 🌡️ Skew-T 단열선도 생성
+        run: pip install -r requirements.txt
+
+      # 4. Secret 등록 여부 사전 확인
+      - name: 🔑 Secret 확인
         env:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
         run: |
-          python skewt_plot.py
+          if [ -z "$KMA_API_URL" ]; then
+            echo "❌ KMA_API_URL Secret이 설정되어 있지 않습니다."
+            echo "   GitHub → Settings → Secrets → New repository secret"
+            exit 1
+          fi
+          echo "✅ KMA_API_URL 확인됨"
 
-      - name: 📤 변경사항 커밋 & 푸시
+      # 5. 단열선도 생성 (메인 스크립트 실행)
+      - name: 🌡️ 단열선도 생성
+        env:
+          KMA_API_URL: ${{ secrets.KMA_API_URL }}
+        run: python skewt_plot.py
+
+      # 6. 생성된 파일 커밋 & 푸시
+      - name: 📤 커밋 & 푸시
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/ README.md
-          # 변경사항이 있을 때만 커밋
-          git diff --staged --quiet || git commit -m "🌡️ Auto-update Skew-T diagram [$(date +'%Y-%m-%d %H:%M KST' -d '+9 hours')]"
-          git push
+          # 실제 변경이 있을 때만 커밋
+          if git diff --staged --quiet; then
+            echo "변경사항 없음 — 커밋 생략"
+          else
+            KST_TIME=$(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M KST')
+            git commit -m "🌡️ 단열선도 자동 갱신 [${KST_TIME}]"
+            git push
+          fi
