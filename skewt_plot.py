@@ -3,35 +3,25 @@
 GitHub Actions에서 매일 실행 → docs/ 에 PNG(다크/라이트) + JSON 저장 → README 갱신
 
 변경 이력:
-  v2.1 - 한글 폰트 수정 (FontProperties 직접 경로 방식)
-       - 다크/라이트 테마 PNG 각각 생성
-       - 범례 항목 수정 및 추가 (풍향 바브, 건조/습윤 단열선, 혼합비선)
-       - 시각화 색상·두께 개선
-       - 보안: API URL 마스킹, 환경변수 검증 강화
-       - 라이브러리 버전 고정 (requirements.txt)
-       - SRH(폭풍상대소용돌이도) 파라미터 추가
+  v3.0 - 코드 전면 정리 (draw/save_meta/main 연결 버그 수정)
+       - 다크/라이트 PNG 파일명 수정 (skewt_dark.png / skewt_light.png)
+       - 마커 좌표 변환 수정 (skew.plot 방식 통일)
+       - 팔레트 딕셔너리 실제 적용
+       - 한글 폰트 경로 탐지 유지
+       - save_meta / update_readme 분리
+       - 보안: URL 도메인 화이트리스트, 로그 마스킹
 """
 
-# ── 표준 라이브러리 ──────────────────────────────────────────────────────────
-import codecs
-import json
-import os
-import re
-import shutil
-import sys
-import urllib.parse
-import warnings
+import codecs, json, os, re, shutil, sys, urllib.parse, warnings
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
 
-# ── 서드파티 ─────────────────────────────────────────────────────────────────
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
-from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import requests
@@ -40,49 +30,33 @@ import metpy.calc as mpcalc
 from metpy.plots import SkewT
 from metpy.units import units
 
+
 # ═══════════════════════════════════════════════════════════════════════════════
-# 0. 보안 설정
+# 0. 보안 유틸
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _validate_api_url(url: str) -> str:
-    """
-    KMA_API_URL 환경변수 검증.
-      - 빈 문자열 거부
-      - http/https 스킴만 허용
-      - 허용된 도메인(기상청 API 허브)만 허용
-      - 로그에 API 키 노출 방지
-    """
     if not url:
         return ""
     try:
         parsed = urllib.parse.urlparse(url)
     except Exception:
-        print("[✗] KMA_API_URL 파싱 실패 — 올바른 URL 형식이 아닙니다.")
-        sys.exit(1)
+        print("[✗] KMA_API_URL 파싱 실패"); sys.exit(1)
 
-    if parsed.scheme not in ("http", "https"):
-        print(f"[✗] 허용되지 않는 URL 스킴: {parsed.scheme}")
-        sys.exit(1)
+    if parsed.scheme != "https":
+        print(f"[✗] 허용되지 않는 URL 스킴: {parsed.scheme!r}"); sys.exit(1)
 
-    allowed_hosts = (
-        "apihub.kma.go.kr",
-        "data.kma.go.kr",
-        "apis.data.go.kr",
-    )
+    _ALLOWED = ("apihub.kma.go.kr", "data.kma.go.kr", "apis.data.go.kr")
     host = parsed.hostname or ""
-    if not any(host == h or host.endswith("." + h) for h in allowed_hosts):
-        print(f"[✗] 허용되지 않는 호스트: {host}")
-        print(f"    허용 도메인: {', '.join(allowed_hosts)}")
-        sys.exit(1)
-
+    if not any(host == h or host.endswith("." + h) for h in _ALLOWED):
+        print(f"[✗] 허용되지 않는 호스트: {host!r}"); sys.exit(1)
     return url
 
 
 def _mask_url(url: str) -> str:
-    """로그 출력 시 쿼리스트링(API 키 포함) 마스킹"""
     try:
-        parsed = urllib.parse.urlparse(url)
-        return urllib.parse.urlunparse(parsed._replace(query="***"))
+        p = urllib.parse.urlparse(url)
+        return urllib.parse.urlunparse(p._replace(query="***"))
     except Exception:
         return "***"
 
@@ -91,16 +65,15 @@ def _mask_url(url: str) -> str:
 # 1. 설정
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_RAW_API_URL = os.environ.get("KMA_API_URL", "")
-API_URL      = _validate_api_url(_RAW_API_URL)
+API_URL = _validate_api_url(os.environ.get("KMA_API_URL", "").strip())
 
-OUTPUT_DIR = Path("docs")
+OUTPUT_DIR      = Path("docs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 RAW_PATH        = OUTPUT_DIR / "original.txt"
 PLOT_DARK_PATH  = OUTPUT_DIR / "skewt_dark.png"
 PLOT_LIGHT_PATH = OUTPUT_DIR / "skewt_light.png"
-PLOT_PATH       = OUTPUT_DIR / "skewt_latest.png"   # 하위 호환 (다크 복사본)
+PLOT_LATEST     = OUTPUT_DIR / "skewt_latest.png"
 META_PATH       = OUTPUT_DIR / "meta.json"
 
 KST       = timezone(timedelta(hours=9))
@@ -108,17 +81,15 @@ NOW       = datetime.now(KST)
 DATE_STR  = NOW.strftime("%Y년 %m월 %d일 %H:%M KST")
 FILE_DATE = NOW.strftime("%Y%m%d")
 
-# ── 한글 폰트 설정 ────────────────────────────────────────────────────────────
-# matplotlib font cache 갱신 문제를 우회: 폰트 파일 경로를 직접 지정
+# ── 한글 폰트 ─────────────────────────────────────────────────────────────────
+# Noto Sans CJK: SIL OFL 1.1 (상업적 사용 포함 무료)
 _FONT_CANDIDATES = [
-    # Linux (Ubuntu/Debian) — GitHub Actions 환경
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc",
     "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    # macOS
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
     "/System/Library/Fonts/AppleSDGothicNeo.ttc",
     "/Library/Fonts/NanumGothic.ttf",
-    # Windows
     "C:/Windows/Fonts/malgun.ttf",
     "C:/Windows/Fonts/gulim.ttc",
 ]
@@ -126,64 +97,64 @@ _FONT_PATH = next((p for p in _FONT_CANDIDATES if Path(p).exists()), None)
 
 if _FONT_PATH:
     _KO_FP = fm.FontProperties(fname=_FONT_PATH)
+    matplotlib.rcParams["font.family"] = fm.FontProperties(fname=_FONT_PATH).get_name()
+    matplotlib.rcParams["axes.unicode_minus"] = False
     print(f"[✓] 한글 폰트: {_FONT_PATH}")
 else:
     _KO_FP = fm.FontProperties()
-    print("[!] 한글 폰트를 찾지 못했습니다 — 기본 폰트 사용 (한글 깨짐 가능)")
+    matplotlib.rcParams["axes.unicode_minus"] = False
+    print("[!] 한글 폰트 없음 — 기본 폰트 사용 (한글 깨짐 가능)")
 
 
 def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
-    """크기·굵기를 지정한 한글 FontProperties 반환"""
     fp = fm.FontProperties(fname=_KO_FP.get_file(), size=size)
     if bold:
         fp.set_weight("bold")
     return fp
 
 
-# ── 테마별 색상 팔레트 ────────────────────────────────────────────────────────
-_DARK = dict(
-    bg       = "#0d1117",
-    surface  = "#161b22",
-    border   = "#30363d",
-    text     = "#e6edf3",
-    subtext  = "#8b949e",
-    # 데이터 곡선
-    temp     = "#ff6b6b",
-    dew      = "#4fc3f7",
-    parcel   = "#ffd54f",
-    # 단열선·혼합비선
-    dry_adi  = "#4caf50",
-    moist    = "#26a69a",
-    mix      = "#ff8f00",
-    # 특수 레벨
-    lcl      = "#ffeb3b",
-    lfc      = "#69f0ae",
-    el       = "#40c4ff",
-    # CAPE/CIN 음영
-    cape_sh  = "#ff6b6b",
-    cin_sh   = "#4fc3f7",
-    # 풍향 바브
-    barb     = "#c8d1d9",
+# ── 테마 팔레트 ───────────────────────────────────────────────────────────────
+_DARK: dict = dict(
+    bg="0d1117",  # placeholder — set below with #
+    bg        = "#0d1117",
+    surface   = "#161b22",
+    border    = "#30363d",
+    text      = "#e6edf3",
+    subtext   = "#8b949e",
+    grid      = "#21262d",
+    temp      = "#ff6b6b",
+    dew       = "#4fc3f7",
+    parcel    = "#ffd54f",
+    dry_adi   = "#66bb6a",
+    moist_adi = "#26a69a",
+    mix_line  = "#ffa726",
+    cape_fill = "#ff6b6b",
+    cin_fill  = "#4fc3f7",
+    lcl_c     = "#ffe082",
+    lfc_c     = "#a5d6a7",
+    el_c      = "#80deea",
+    box_bg    = "#161b22",
 )
 
-_LIGHT = dict(
-    bg       = "#ffffff",
-    surface  = "#f6f8fa",
-    border   = "#d0d7de",
-    text     = "#1f2328",
-    subtext  = "#57606a",
-    temp     = "#c0392b",
-    dew      = "#1565c0",
-    parcel   = "#f57f17",
-    dry_adi  = "#2e7d32",
-    moist    = "#00695c",
-    mix      = "#e65100",
-    lcl      = "#f9a825",
-    lfc      = "#1b5e20",
-    el       = "#0277bd",
-    cape_sh  = "#c0392b",
-    cin_sh   = "#1565c0",
-    barb     = "#424242",
+_LIGHT: dict = dict(
+    bg        = "#ffffff",
+    surface   = "#f6f8fa",
+    border    = "#d0d7de",
+    text      = "#1f2328",
+    subtext   = "#57606a",
+    grid      = "#e4e8ec",
+    temp      = "#c0392b",
+    dew       = "#1565c0",
+    parcel    = "#f57f17",
+    dry_adi   = "#2e7d32",
+    moist_adi = "#00695c",
+    mix_line  = "#e65100",
+    cape_fill = "#ef9a9a",
+    cin_fill  = "#90caf9",
+    lcl_c     = "#f9a825",
+    lfc_c     = "#2e7d32",
+    el_c      = "#0277bd",
+    box_bg    = "#f0f2f5",
 )
 
 
@@ -192,35 +163,27 @@ _LIGHT = dict(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def download_raw(url: str, path: Path) -> None:
-    """API URL에서 원시 파일 다운로드"""
     print(f"[→] 다운로드: {_mask_url(url)}")
     session = requests.Session()
     session.max_redirects = 5
-
     try:
         resp = session.get(url, timeout=30, allow_redirects=True)
         resp.raise_for_status()
     except requests.exceptions.Timeout:
-        print("[✗] 다운로드 타임아웃 (30초 초과)")
-        sys.exit(1)
+        print("[✗] 타임아웃"); sys.exit(1)
     except requests.exceptions.SSLError as e:
-        print(f"[✗] SSL 오류: {e}")
-        sys.exit(1)
+        print(f"[✗] SSL 오류: {e}"); sys.exit(1)
     except requests.exceptions.HTTPError as e:
-        print(f"[✗] HTTP 오류: {e}")
-        sys.exit(1)
+        print(f"[✗] HTTP 오류: {e}"); sys.exit(1)
 
-    content_type = resp.headers.get("Content-Type", "")
-    if "html" in content_type.lower():
-        print("[✗] HTML 응답 반환됨 — API URL 또는 키를 확인하세요.")
-        sys.exit(1)
+    if "html" in resp.headers.get("Content-Type", "").lower():
+        print("[✗] HTML 응답 — API URL/키 확인 필요"); sys.exit(1)
 
     path.write_bytes(resp.content)
     print(f"[✓] 다운로드 완료: {len(resp.content):,} bytes")
 
 
 def recode(path: Path, src: str = "euc-kr", dst: str = "utf-8") -> None:
-    """EUC-KR → UTF-8 재인코딩 (깨진 바이트는 replace 처리)"""
     with codecs.open(path, "r", src, errors="replace") as f:
         text = f.read()
     with codecs.open(path, "w", dst) as f:
@@ -232,17 +195,13 @@ def recode(path: Path, src: str = "euc-kr", dst: str = "utf-8") -> None:
 # 3. 데이터 파싱
 # ═══════════════════════════════════════════════════════════════════════════════
 
-COLS = ["YYMMDDHHMI", "STN", "PA", "GH", "TA", "TD", "WD", "WS", "FLAG"]
+_COLS = ["YYMMDDHHMI", "STN", "PA", "GH", "TA", "TD", "WD", "WS", "FLAG"]
 
 
 def load_data(path: Path) -> pd.DataFrame:
     df = pd.read_csv(
-        path,
-        sep=r"\s+",
-        comment="#",
-        header=None,
-        names=COLS,
-        na_values=[-999.0, -9999.0],
+        path, sep=r"\s+", comment="#", header=None,
+        names=_COLS, na_values=[-999.0, -9999.0],
     )
     df["datetime"] = pd.to_datetime(
         df["YYMMDDHHMI"], format="%Y%m%d%H%M", errors="coerce")
@@ -261,12 +220,11 @@ def load_data(path: Path) -> pd.DataFrame:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _safe(fn, *args, **kw):
-    """MetPy 계산 실패 또는 nan 결과 시 None 반환"""
     try:
         result = fn(*args, **kw)
         if isinstance(result, tuple) and len(result) == 2:
             if np.isnan(result[0].magnitude) or np.isnan(result[1].magnitude):
-                print(f"    [!] {fn.__name__}: 조건 불충족 (nan) → None")
+                print(f"    [!] {fn.__name__}: nan → None")
                 return None
         return result
     except Exception as e:
@@ -287,27 +245,27 @@ def compute(df: pd.DataFrame) -> dict:
 
     lcl  = _safe(mpcalc.lcl, p[0], t[0], td[0])
     lfc  = _safe(mpcalc.lfc, p, t, td, which="bottom")
-    el   = _safe(mpcalc.el, p, t, td)
+    el   = _safe(mpcalc.el,  p, t, td)
     pwat = _safe(mpcalc.precipitable_water, p, td)
 
-    # 0–6 km 벌크 윈드시어
     shr06 = None
     srh   = None
-    mask = ~np.isnan(wd) & ~np.isnan(ws)
+    mask  = ~np.isnan(wd) & ~np.isnan(ws)
     if mask.sum() >= 2:
         try:
             u, v = mpcalc.wind_components(
                 ws[mask] * units("m/s"),
                 wd[mask] * units.degrees,
             )
-            shr06 = _safe(mpcalc.bulk_shear, p[mask], u, v,
-                          depth=6000 * units.meter)
-            srh_result = _safe(mpcalc.storm_relative_helicity,
-                               p[mask], u, v, depth=3000 * units.meter)
-            if srh_result is not None:
-                # (positive_srh, negative_srh, total_srh)
-                srh = float(srh_result[2].magnitude) if isinstance(srh_result, tuple) \
-                      else float(srh_result.magnitude)
+            shr_res = _safe(mpcalc.bulk_shear, p[mask], u, v,
+                            depth=6000 * units.meter)
+            if shr_res is not None:
+                u_s, v_s = shr_res
+                shr06 = float(np.sqrt(u_s.magnitude**2 + v_s.magnitude**2))
+            srh_res = _safe(mpcalc.storm_relative_helicity,
+                            p[mask], u, v, depth=3000 * units.meter)
+            if srh_res is not None:
+                srh = float(srh_res[2].magnitude)
         except Exception as e:
             print(f"    [!] 윈드 파라미터 계산 실패: {e}")
 
@@ -323,116 +281,167 @@ def compute(df: pd.DataFrame) -> dict:
 # 5. 그래프 생성
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def draw_skewt(params: dict, date_str: str, save_path_base: Path):
-    """
-    Skew-T Log-P 단열선도 생성 및 저장 (다크/라이트 통합)
-    save_path_base: 파일명 접두사 (예: Path("docs/skewt"))
-    """
+def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
+    """단일 테마 Skew-T Log-P PNG 생성"""
     p, t, td, prof = params["p"], params["t"], params["td"], params["prof"]
-    gh, wd, ws     = params["gh"], params["wd"], params["ws"]
     lcl, lfc, el   = params["lcl"], params["lfc"], params["el"]
     cape = params["cape"].magnitude
     cin  = params["cin"].magnitude
 
-    # 테마 리스트 (수정 요청사항 3번 반영)
-    themes = ['dark', 'light']
+    plt.close("all")
 
-    for theme in themes:
-        # [중요] 이전 루프의 스타일이나 잔상을 완전히 제거
-        plt.close('all')
-        
-        if theme == 'dark':
-            plt.style.use('dark_background')
-            bg_color = "#0d1117"     # 배경색
-            grid_color = "#333333"   # 격자색
-            text_color = "white"     # 텍스트색
-            box_color = "#1e2a38"    # 텍스트 박스색
-        else:
-            plt.style.use('default') # 기본 테마(화이트)로 초기화
-            bg_color = "white"
-            grid_color = "#dddddd"
-            text_color = "black"
-            box_color = "#f0f0f0"
+    fig  = plt.figure(figsize=(9, 11), facecolor=C["bg"])
+    skew = SkewT(fig, rotation=45)
+    ax   = skew.ax
+    ax.set_facecolor(C["bg"])
+    for sp in ax.spines.values():
+        sp.set_edgecolor(C["border"])
 
-        fig = plt.figure(figsize=(9, 11), facecolor=bg_color)
-        skew = SkewT(fig, rotation=45)
-        ax = skew.ax
-        ax.set_facecolor(bg_color)
+    # 등압선
+    for pres in [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100]:
+        ax.axhline(pres, lw=0.6, color=C["grid"], zorder=0)
 
-        # 5번: 시각화 이미지 색상 및 두께 개선
-        # 온도 / 이슬점 / 기층 상승 곡선
-        skew.plot(p, t, "tomato", linewidth=2.2, label="기온 (°C)")
-        skew.plot(p, td, "#4fc3f7", linewidth=2.2, linestyle="dashed", label="이슬점 (°C)")
-        skew.plot(p, prof, "#ffd54f", linewidth=1.6, linestyle="dashed", label="기층 상승 곡선")
+    # 단열선 / 혼합비 선
+    skew.plot_dry_adiabats(
+        colors=C["dry_adi"],   linewidth=0.8, linestyle="--", alpha=0.45)
+    skew.plot_moist_adiabats(
+        colors=C["moist_adi"], linewidth=0.8, linestyle="-.", alpha=0.45)
+    skew.plot_mixing_lines(
+        colors=C["mix_line"],  linewidth=0.65, linestyle=":", alpha=0.50,
+        pressure=np.arange(100, 1051, 10) * units.hPa)
 
-        # 단열선 및 배경 격자
-        skew.plot_dry_adiabats(colors="#3a6e3a", linewidth=0.8, linestyle="--", alpha=0.4)
-        skew.plot_moist_adiabats(colors="#1a6e4e", linewidth=0.8, linestyle="-.", alpha=0.4)
-        skew.plot_mixing_lines(colors="#6e3a1a", linewidth=0.7, linestyle=":", alpha=0.4)
+    # CAPE / CIN 음영
+    skew.shade_cape(p, t, prof, facecolor=C["cape_fill"], alpha=0.25)
+    skew.shade_cin (p, t, prof, facecolor=C["cin_fill"],  alpha=0.25)
 
-        for pres in [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100]:
-            ax.axhline(pres, lw=0.6, color=grid_color, zorder=0)
+    # 메인 곡선
+    skew.plot(p, t,    C["temp"],   lw=2.2, label="기온 (T)",       zorder=4)
+    skew.plot(p, td,   C["dew"],    lw=2.2, linestyle="dashed",
+              label="이슬점 (Td)", zorder=4)
+    skew.plot(p, prof, C["parcel"], lw=1.6, linestyle=(0, (4, 3)),
+              label="기층 상승 곡선", zorder=4)
 
-        # CAPE / CIN 음영
-        skew.shade_cape(p, t, prof, facecolor="tomato", alpha=0.3)
-        skew.shade_cin(p, t, prof, facecolor="steelblue", alpha=0.3)
+    # 관측 레벨 점 (skew.plot 으로 좌표 변환 자동 처리)
+    skew.plot(p, t,  C["temp"], linestyle="none",
+              marker="o", markersize=4.5, alpha=0.80, zorder=5)
+    skew.plot(p, td, C["dew"],  linestyle="none",
+              marker="o", markersize=4.5, alpha=0.80, zorder=5)
 
-        # 2번: 마커 및 Legend 수정 (zorder 상향으로 가려짐 방지)
-        marker_kw = dict(zorder=10, s=80, transform=ax.get_xaxis_transform())
-        if params.get("lcl_p") is not None:
-            ax.scatter(params["lcl_t"].magnitude, params["lcl_p"].magnitude, 
-                       color="yellow", marker="^", label="LCL", **marker_kw)
-        if params.get("lfc_p") is not None:
-            ax.scatter(params["lfc_t"].magnitude, params["lfc_p"].magnitude, 
-                       color="lime", marker="s", label="LFC", **marker_kw)
-        if params.get("el_p") is not None:
-            ax.scatter(params["el_t"].magnitude, params["el_p"].magnitude, 
-                       color="cyan", marker="D", label="EL", **marker_kw)
+    # 특수 레벨 마커
+    def _mark(pair, color, marker, label):
+        if pair is None:
+            return
+        pv, tv = pair[0].to("hPa"), pair[1].to("degC")
+        if np.isnan(pv.magnitude) or np.isnan(tv.magnitude):
+            return
+        skew.plot(pv, tv, linestyle="none",
+                  marker=marker, markersize=12, color=color,
+                  markeredgecolor=C["text"], markeredgewidth=1.1,
+                  zorder=7, label=label)
 
-        # 6번: 텍스트 및 레이블 수정 (한글 폰트 명시적 적용 권장)
-        ax.set_ylim(1050, 100)
-        ax.set_xlim(-40, 45)
-        ax.set_xlabel("기온 (°C)", color=text_color, fontsize=11)
-        ax.set_ylabel("기압 (hPa)", color=text_color, fontsize=11)
-        ax.tick_params(colors=text_color)
+    _mark(lcl, C["lcl_c"], "^", "LCL (들올림 응결 고도)")
+    _mark(lfc, C["lfc_c"], "s", "LFC (자유 대류 고도)")
+    _mark(el,  C["el_c"],  "D", "EL  (평형 고도)")
 
-        ax.set_title(f"Skew-T Log-P 단열선도 ({theme.upper()})\n{date_str}", 
-                     color=text_color, fontsize=14, fontweight="bold", pad=15)
+    # 축
+    ax.set_ylim(1050, 100)
+    ax.set_xlim(-40, 45)
+    ax.set_xlabel("기온 (°C)",   color=C["subtext"], fontsize=11,
+                  fontproperties=kfont(11))
+    ax.set_ylabel("기압 (hPa)", color=C["subtext"], fontsize=11,
+                  fontproperties=kfont(11))
+    ax.tick_params(colors=C["subtext"])
 
-        # 하단 정보 텍스트 박스
-        info_text = f"CAPE : {cape:6.1f} J/kg\nCIN  : {cin:6.1f} J/kg"
-        ax.text(0.03, 0.03, info_text, transform=ax.transAxes, fontsize=10, 
-                color=text_color, family='monospace', verticalalignment="bottom",
-                bbox=dict(facecolor=box_color, edgecolor=grid_color, alpha=0.8, pad=6))
+    # 제목
+    ax.set_title(
+        f"Skew-T Log-P 단열선도\n{date_str}",
+        color=C["text"], fontsize=13, fontweight="bold", pad=12,
+        fontproperties=kfont(13, bold=True),
+    )
 
-        # 범례
-        ax.legend(loc="upper right", fontsize=9, facecolor=box_color, 
-                  edgecolor=grid_color, labelcolor=text_color)
+    # 정보 박스
+    def _fmt(pair):
+        if pair is None:
+            return "없음"
+        return f"{pair[0].to('hPa').magnitude:.0f} hPa  /  {pair[1].to('degC').magnitude:.1f} \u00b0C"
 
-        # 3번: 다크/화이트 구분 저장
-        final_save_path = f"{save_path_base}_{theme}.png"
-        plt.tight_layout()
-        # [중요] facecolor를 지정해야 화이트/다크 배경이 파일에 제대로 기록됨
-        plt.savefig(final_save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-        print(f"[✓] {theme} 그래프 저장 완료: {final_save_path}")
+    lines = [
+        f"CAPE  :  {cape:>8.1f}  J/kg",
+        f"CIN   :  {cin:>8.1f}  J/kg",
+        f"LCL   :  {_fmt(lcl)}",
+        f"LFC   :  {_fmt(lfc)}",
+        f"EL    :  {_fmt(el)}",
+    ]
+    if params["pwat"] is not None:
+        lines.append(f"PWAT  :  {params['pwat'].to('mm').magnitude:>5.1f}  mm")
+    if params["shr06"] is not None:
+        lines.append(f"SHR06 :  {params['shr06']:>5.1f}  m/s")
+    if params["srh"] is not None:
+        lines.append(f"SRH   :  {params['srh']:>6.1f}  m\u00b2/s\u00b2")
 
-    return cape, cin
+    ax.text(
+        0.015, 0.015, "\n".join(lines),
+        transform=ax.transAxes, fontsize=8.5,
+        color=C["text"], va="bottom", fontfamily="monospace",
+        bbox=dict(facecolor=C["box_bg"], edgecolor=C["border"],
+                  alpha=0.92, pad=6, boxstyle="round,pad=0.5"),
+    )
+
+    # 범례 (중복 제거)
+    handles, labels = ax.get_legend_handles_labels()
+    seen, h_out, l_out = set(), [], []
+    for h, lb in zip(handles, labels):
+        if lb.startswith("_") or lb in seen:
+            continue
+        seen.add(lb); h_out.append(h); l_out.append(lb)
+    ax.legend(h_out, l_out, loc="upper right", fontsize=8.5,
+              facecolor=C["box_bg"], edgecolor=C["border"],
+              labelcolor=C["text"], framealpha=0.92,
+              prop=kfont(8.5))
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches="tight",
+                facecolor=fig.get_facecolor())
+    plt.close(fig)
+    print(f"[✓] 저장: {save_path}")
 
 
+def draw_both(params: dict, date_str: str) -> None:
+    _draw_one(params, date_str, _DARK,  PLOT_DARK_PATH)
+    _draw_one(params, date_str, _LIGHT, PLOT_LIGHT_PATH)
+    shutil.copy2(PLOT_DARK_PATH, PLOT_LATEST)
+    print(f"[✓] 하위 호환 복사: {PLOT_LATEST}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. 메타데이터 JSON
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def save_meta(df: pd.DataFrame, params: dict) -> None:
+    def _pv(pair, i):
+        if pair is None:
+            return None
+        mag = (pair[i].to("hPa") if i == 0 else pair[i].to("degC")).magnitude
+        return None if np.isnan(mag) else round(float(mag), 1)
+
+    table = (
+        df[["PA", "GH", "TA", "TD", "WD", "WS"]]
+        .replace({float("nan"): None})
+        .round(1)
+        .to_dict(orient="records")
+    )
     meta = {
         "generated" : DATE_STR,
         "file_date" : FILE_DATE,
         "cape"      : round(float(params["cape"].magnitude), 1),
         "cin"       : round(float(params["cin"].magnitude),  1),
-        "lcl_p"     : _pv(params["lcl"], 0),
-        "lcl_t"     : _pv(params["lcl"], 1),
-        "lfc_p"     : _pv(params["lfc"], 0),
-        "lfc_t"     : _pv(params["lfc"], 1),
-        "el_p"      : _pv(params["el"],  0),
-        "el_t"      : _pv(params["el"],  1),
+        "lcl_p"     : _pv(params["lcl"], 0), "lcl_t": _pv(params["lcl"], 1),
+        "lfc_p"     : _pv(params["lfc"], 0), "lfc_t": _pv(params["lfc"], 1),
+        "el_p"      : _pv(params["el"],  0), "el_t":  _pv(params["el"],  1),
         "pwat"      : (round(float(params["pwat"].to("mm").magnitude), 1)
                        if params["pwat"] is not None else None),
-        "shr06"     : _shr_mag(params["shr06"]),
+        "shr06"     : (round(params["shr06"], 1)
+                       if params["shr06"] is not None else None),
         "srh"       : (round(params["srh"], 1)
                        if params["srh"] is not None else None),
         "levels"    : table,
@@ -455,8 +464,7 @@ def update_readme(params: dict) -> None:
         return f"![{label}](https://img.shields.io/badge/{label}-{v}-{color})"
 
     badges = badge("CAPE", cape, "orange") + "  " + badge("CIN", cin, "blue")
-
-    block = (
+    block  = (
         "<!-- SKEWT_AUTO_START -->\n"
         f"### 최신 단열선도 — {DATE_STR}\n\n"
         f"{badges}\n\n"
@@ -466,14 +474,11 @@ def update_readme(params: dict) -> None:
         " ![Skew-T Light](docs/skewt_light.png) |\n"
         "<!-- SKEWT_AUTO_END -->"
     )
-
     readme = Path("README.md")
     if not readme.exists():
         readme.write_text(
-            "# ZONDE API Analyze\n\n"
-            "기상청 API 허브를 이용한 Skew-T Log-P 단열선도 자동 생성\n\n" + block,
-            encoding="utf-8",
-        )
+            "# ZONDE API Analyze\n\n기상청 API 허브를 이용한 "
+            "Skew-T Log-P 단열선도 자동 생성\n\n" + block, encoding="utf-8")
     else:
         content = readme.read_text(encoding="utf-8")
         pattern = r"<!-- SKEWT_AUTO_START -->.*?<!-- SKEWT_AUTO_END -->"
@@ -482,18 +487,9 @@ def update_readme(params: dict) -> None:
         else:
             content += "\n\n" + block
         readme.write_text(content, encoding="utf-8")
-
     print("[✓] README.md 갱신 완료")
 
-# skewt_plot.py 내 적절한 위치에 추가
-def save_export_files(df, date_str):
-    # CSV 저장
-    df.to_csv(f"docs/sounding_{date_str}.csv", index=False, encoding='utf-8-sig')
-    # XLSX 저장 (requirements.txt에 openpyxl 추가 필요)
-    df.to_excel(f"docs/sounding_{date_str}.xlsx", index=False)
-    # TXT 저장
-    with open(f"docs/sounding_{date_str}.txt", "w", encoding='utf-8') as f:
-        f.write(df.to_string(index=False))
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # 진입점
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -512,28 +508,24 @@ def main():
     df     = load_data(RAW_PATH)
     params = compute(df)
 
-    print(f"\n  CAPE = {params['cape'].magnitude:.1f} J/kg")
-    print(f"  CIN  = {params['cin'].magnitude:.1f} J/kg")
-    for key, label in [("lcl", "LCL"), ("lfc", "LFC"), ("el", "EL")]:
+    print(f"\n  CAPE  = {params['cape'].magnitude:.1f} J/kg")
+    print(f"  CIN   = {params['cin'].magnitude:.1f} J/kg")
+    for key, label in [("lcl","LCL"), ("lfc","LFC"), ("el","EL")]:
         v = params[key]
         if v:
-            print(f"  {label}  = {v[0].to('hPa').magnitude:.0f} hPa"
+            print(f"  {label}   = {v[0].to('hPa').magnitude:.0f} hPa"
                   f" / {v[1].to('degC').magnitude:.1f} °C")
         else:
-            print(f"  {label}  = 없음")
+            print(f"  {label}   = 없음")
     if params["pwat"] is not None:
-        print(f"  PWAT = {params['pwat'].to('mm').magnitude:.1f} mm")
+        print(f"  PWAT  = {params['pwat'].to('mm').magnitude:.1f} mm")
+    if params["shr06"] is not None:
+        print(f"  SHR06 = {params['shr06']:.1f} m/s")
     if params["srh"] is not None:
-        print(f"  SRH  = {params['srh']:.1f} m²/s²")
-
+        print(f"  SRH   = {params['srh']:.1f} m²/s²")
     print()
-    draw_skewt(params, DATE_STR, PLOT_DARK_PATH,  _DARK)
-    draw_skewt(params, DATE_STR, PLOT_LIGHT_PATH, _LIGHT)
 
-    # 하위 호환: 기존 skewt_latest.png = 다크 버전
-    shutil.copy2(PLOT_DARK_PATH, PLOT_PATH)
-    print(f"[✓] 하위 호환 복사: {PLOT_PATH}")
-
+    draw_both(params, DATE_STR)
     save_meta(df, params)
     update_readme(params)
 
