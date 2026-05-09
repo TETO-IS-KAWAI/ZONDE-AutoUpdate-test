@@ -581,7 +581,15 @@ def update_readme(params: dict) -> None:
 
     print("[✓] README.md 갱신 완료")
 
-
+# skewt_plot.py 내 적절한 위치에 추가
+def save_export_files(df, date_str):
+    # CSV 저장
+    df.to_csv(f"docs/sounding_{date_str}.csv", index=False, encoding='utf-8-sig')
+    # XLSX 저장 (requirements.txt에 openpyxl 추가 필요)
+    df.to_excel(f"docs/sounding_{date_str}.xlsx", index=False)
+    # TXT 저장
+    with open(f"docs/sounding_{date_str}.txt", "w", encoding='utf-8') as f:
+        f.write(df.to_string(index=False))
 # ═══════════════════════════════════════════════════════════════════════════════
 # 진입점
 # ═══════════════════════════════════════════════════════════════════════════════
