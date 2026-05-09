@@ -1,0 +1,13 @@
+cat > /tmp/repo/ZONDE-AutoUpdate-test-main/.gitattributes << 'EOF'
+
+docs/index.html linguist-detectable=true
+docs/index.html linguist-documentation=false
+
+docs/meta.json linguist-generated=true
+docs/original.txt linguist-generated=true
+docs/skewt_dark.png linguist-generated=true
+docs/skewt_light.png linguist-generated=true
+docs/skwet_latest.png linguist-generated=true
+
+EOF
+echo "done"
