@@ -3,367 +3,678 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Skew-T Log-P 단열선도 | 기상청 관측 자동화</title>
+  <meta name="description" content="기상청 API 허브 고층기상 자동 분석 — Skew-T Log-P 단열선도 매일 자동 갱신" />
+  <!-- CSP: inline script/style 허용, 외부 리소스 제한 -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://img.shields.io; connect-src 'self';" />
+  <title>ZONDE · Skew-T Log-P 단열선도</title>
+
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
   <style>
-    /* ── CSS 변수 (라이트 / 다크) ───────────────────────────────────────────── */
-    :root {
-      color-scheme: light dark;
-    }
-    [data-theme="dark"] {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --surface2:  #1c2128;
-      --border:    #30363d;
-      --accent:    #58a6ff;
-      --green:     #3fb950;
-      --orange:    #d29922;
-      --red:       #f85149;
-      --cyan:      #39d5d5;
-      --text:      #e6edf3;
-      --subtext:   #8b949e;
-      --th-bg:     #21262d;
-      --tr-even:   #161b22;
-      --tr-odd:    #1c2128;
-      --tr-hover:  #2d333b;
-      --shadow:    rgba(0,0,0,0.4);
-    }
-    [data-theme="light"] {
-      --bg:        #f6f8fa;
-      --surface:   #ffffff;
-      --surface2:  #f0f2f5;
-      --border:    #d0d7de;
-      --accent:    #0969da;
-      --green:     #1a7f37;
-      --orange:    #9a6700;
-      --red:       #cf222e;
-      --cyan:      #0a8080;
-      --text:      #1f2328;
-      --subtext:   #656d76;
-      --th-bg:     #eaeef2;
-      --tr-even:   #ffffff;
-      --tr-odd:    #f6f8fa;
-      --tr-hover:  #eaeef2;
-      --shadow:    rgba(0,0,0,0.1);
-    }
+/* ═══════════════════════════════════════════════════════════════════════════
+   CSS 변수 — 다크 / 라이트
+═══════════════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg:         #0a0e17;
+  --bg2:        #0d1117;
+  --surface:    #161b22;
+  --surface2:   #1c2128;
+  --surface3:   #21262d;
+  --border:     #30363d;
+  --border2:    #3d444d;
+  --accent:     #4493f8;
+  --accent2:    #79c0ff;
+  --green:      #3fb950;
+  --orange:     #d29922;
+  --red:        #f85149;
+  --yellow:     #e3b341;
+  --cyan:       #39c5cf;
+  --purple:     #a371f7;
+  --text:       #e6edf3;
+  --text2:      #c9d1d9;
+  --subtext:    #8b949e;
+  --muted:      #484f58;
+  --th-bg:      #1c2128;
+  --tr-odd:     #161b22;
+  --tr-even:    #0d1117;
+  --tr-hover:   #21262d;
+  --shadow:     0 4px 24px rgba(0,0,0,.5);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,.3);
+  --glow:       0 0 20px rgba(68,147,248,.15);
+}
+[data-theme="light"] {
+  --bg:         #f0f2f5;
+  --bg2:        #f6f8fa;
+  --surface:    #ffffff;
+  --surface2:   #f6f8fa;
+  --surface3:   #eaeef2;
+  --border:     #d0d7de;
+  --border2:    #b8c0cc;
+  --accent:     #0969da;
+  --accent2:    #0550ae;
+  --green:      #1a7f37;
+  --orange:     #9a6700;
+  --red:        #cf222e;
+  --yellow:     #9a6700;
+  --cyan:       #0a8080;
+  --purple:     #6e40c9;
+  --text:       #1f2328;
+  --text2:      #36393e;
+  --subtext:    #656d76;
+  --muted:      #9198a1;
+  --th-bg:      #eaeef2;
+  --tr-odd:     #ffffff;
+  --tr-even:    #f6f8fa;
+  --tr-hover:   #eaeef2;
+  --shadow:     0 4px 24px rgba(0,0,0,.1);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,.06);
+  --glow:       0 0 20px rgba(9,105,218,.1);
+}
 
-    /* ── 시스템 설정 기본값 ─────────────────────────────────────────────────── */
-    @media (prefers-color-scheme: light) {
-      html:not([data-theme]) { /* JS 로드 전 깜박임 방지 */ }
-    }
+/* ── 리셋 + 기본 ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── 기본 리셋 ──────────────────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', 'Noto Sans KR', system-ui, sans-serif;
-      font-size: 15px;
-      line-height: 1.6;
-      min-height: 100vh;
-      transition: background .25s, color .25s;
-    }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+  transition: background .3s, color .3s;
+}
 
-    /* ── 레이아웃 ───────────────────────────────────────────────────────────── */
-    .container {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 2rem 1rem 4rem;
-    }
+/* ── 배경 노이즈 텍스처 (다크 모드에서 미묘한 깊이감) ────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 10%,
+      rgba(68,147,248,.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 90%,
+      rgba(57,197,207,.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-    /* ── 헤더 ───────────────────────────────────────────────────────────────── */
-    header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    .header-text h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: -.5px;
-    }
-    .header-text p {
-      color: var(--subtext);
-      font-size: .9rem;
-      margin-top: .25rem;
-    }
+/* ── 레이아웃 ────────────────────────────────────────────────────────────── */
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 5rem;
+}
 
-    /* 다크/라이트 전환 버튼 */
-    #theme-toggle {
-      flex-shrink: 0;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .45rem .75rem;
-      cursor: pointer;
-      font-size: 1.1rem;
-      color: var(--text);
-      transition: background .2s, border-color .2s;
-      user-select: none;
-    }
-    #theme-toggle:hover { background: var(--border); }
+/* ── 헤더 ────────────────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
 
-    /* ── 카드 ───────────────────────────────────────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.4rem 1.6rem;
-      margin-bottom: 1.4rem;
-      box-shadow: 0 2px 8px var(--shadow);
-      transition: background .25s, border-color .25s;
-    }
-    .card-title {
-      font-size: .72rem;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: var(--subtext);
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
+.header-left { flex: 1; }
 
-    /* ── 배지 행 ────────────────────────────────────────────────────────────── */
-    .badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .6rem;
-      margin-bottom: 1.2rem;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: .25rem .85rem;
-      font-size: .82rem;
-      color: var(--text);
-    }
-    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.site-eyebrow {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: .4rem;
+}
 
-    /* ── 그래프 ─────────────────────────────────────────────────────────────── */
-    #plot-wrap {
-      position: relative;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      min-height: 200px;
-    }
-    #plot-img {
-      width: 100%;
-      display: block;
-    }
-    #plot-placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--subtext);
-      font-size: .9rem;
-      padding: 2rem;
-      text-align: center;
-    }
+.site-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.5px;
+  line-height: 1.2;
+}
 
-    /* ── 파라미터 그리드 ────────────────────────────────────────────────────── */
-    .param-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: .8rem;
-      margin-top: .2rem;
-    }
-    .param-item {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .8rem 1rem;
-      transition: background .25s;
-    }
-    .param-label {
-      font-size: .72rem;
-      color: var(--subtext);
-      margin-bottom: .2rem;
-      font-weight: 500;
-    }
-    .param-value {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-    .param-sub {
-      font-size: .72rem;
-      color: var(--subtext);
-      margin-top: .15rem;
-    }
-    .v-cape  { color: var(--orange); }
-    .v-cin   { color: var(--accent); }
-    .v-lcl   { color: #ffd54f; }
-    .v-lfc   { color: var(--green); }
-    .v-el    { color: var(--cyan); }
-    .v-pwat  { color: #b39ddb; }
+.site-title span {
+  color: var(--accent);
+}
 
-    /* ── 관측 레벨 테이블 ───────────────────────────────────────────────────── */
-    .table-wrap {
-      overflow-x: auto;
-      margin-top: .4rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .82rem;
-    }
-    thead th {
-      background: var(--th-bg);
-      color: var(--subtext);
-      text-align: right;
-      padding: .55rem .8rem;
-      font-weight: 600;
-      font-size: .75rem;
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      white-space: nowrap;
-      border-bottom: 1px solid var(--border);
-    }
-    thead th:first-child { text-align: left; }
-    tbody tr:nth-child(even) { background: var(--tr-even); }
-    tbody tr:nth-child(odd)  { background: var(--tr-odd); }
-    tbody tr:hover           { background: var(--tr-hover); }
-    tbody td {
-      padding: .45rem .8rem;
-      text-align: right;
-      color: var(--text);
-      border-bottom: 1px solid var(--border);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-    tbody td:first-child { text-align: left; font-weight: 600; }
-    tbody tr:last-child td { border-bottom: none; }
-    .na { color: var(--subtext); font-style: italic; }
+.site-sub {
+  color: var(--subtext);
+  font-size: .85rem;
+  margin-top: .35rem;
+  font-weight: 400;
+}
 
-    /* ── 다운로드 버튼 ──────────────────────────────────────────────────────── */
-    .btn {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 7px;
-      padding: .48rem 1.1rem;
-      font-size: .85rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      margin-top: 1rem;
-      transition: opacity .15s;
-    }
-    .btn:hover { opacity: .82; }
+/* 헤더 우측 컨트롤 */
+.header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .5rem;
+  flex-shrink: 0;
+}
 
-    /* ── 업데이트 시간 ──────────────────────────────────────────────────────── */
-    #update-time {
-      color: var(--subtext);
-      font-size: .8rem;
-      margin-top: .7rem;
-    }
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text);
+  transition: background .2s, border-color .2s, transform .15s;
+  user-select: none;
+}
+.icon-btn:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+  transform: scale(1.06);
+}
 
-    /* ── 푸터 ───────────────────────────────────────────────────────────────── */
-    footer {
-      text-align: center;
-      color: var(--subtext);
-      font-size: .8rem;
-      margin-top: 2.5rem;
-    }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
+/* ── 카드 ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: background .3s, border-color .3s;
+}
 
-    /* ── 로딩 펄스 ──────────────────────────────────────────────────────────── */
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-    .loading { animation: pulse 1.4s ease-in-out infinite; }
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  gap: .75rem;
+}
 
-    /* ── 반응형 ─────────────────────────────────────────────────────────────── */
-    @media (max-width: 520px) {
-      .header-text h1 { font-size: 1.35rem; }
-      .param-grid { grid-template-columns: 1fr 1fr; }
-    }
+.section-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--subtext);
+}
+
+/* ── 상태 배지 ──────────────────────────────────────────────────────────── */
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: 1.1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: .22rem .75rem;
+  font-size: .78rem;
+  color: var(--text2);
+  font-weight: 500;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-accent { background: var(--accent); }
+
+/* ── 이미지 뷰어 ─────────────────────────────────────────────────────────── */
+.plot-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+/* 테마 토글 세그먼트 */
+.seg-ctrl {
+  display: inline-flex;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.seg-btn {
+  padding: .3rem .75rem;
+  border-radius: 6px;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--subtext);
+  transition: background .18s, color .18s;
+  font-family: inherit;
+}
+
+.seg-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+#plot-wrap {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  min-height: 180px;
+  margin-top: .75rem;
+}
+
+#plot-img {
+  width: 100%;
+  display: block;
+  transition: opacity .3s;
+}
+
+#plot-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--subtext);
+  font-size: .9rem;
+  gap: .75rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 다운로드 버튼 그룹 */
+.dl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border: none;
+  border-radius: 8px;
+  padding: .45rem 1rem;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity .15s, transform .1s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn:hover  { opacity: .85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary { background: var(--accent);  color: #fff; }
+.btn-ghost   { background: var(--surface3); color: var(--text2);
+               border: 1px solid var(--border); }
+.btn-outline { background: transparent; color: var(--accent);
+               border: 1px solid var(--accent); }
+
+/* ── 파라미터 그리드 ─────────────────────────────────────────────────────── */
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .75rem;
+}
+
+.param-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .9rem 1.1rem;
+  transition: background .3s, border-color .2s, transform .15s;
+  cursor: default;
+}
+.param-item:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.param-label {
+  font-size: .68rem;
+  color: var(--subtext);
+  margin-bottom: .25rem;
+  font-weight: 500;
+  letter-spacing: .3px;
+}
+
+.param-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: .1rem;
+}
+
+.param-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.2;
+}
+
+.param-unit {
+  font-size: .7rem;
+  color: var(--subtext);
+  margin-top: .15rem;
+  font-weight: 400;
+}
+
+.param-sub {
+  font-size: .72rem;
+  color: var(--subtext);
+  margin-top: .12rem;
+}
+
+/* 파라미터 색상 */
+.v-cape   { color: var(--orange); }
+.v-cin    { color: var(--accent); }
+.v-lcl    { color: var(--yellow); }
+.v-lfc    { color: var(--green);  }
+.v-el     { color: var(--cyan);   }
+.v-pwat   { color: var(--purple); }
+.v-shr    { color: var(--red);    }
+.v-srh    { color: #f78166;       }
+
+/* ── 관측 테이블 ─────────────────────────────────────────────────────────── */
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.table-dl-row {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+thead th {
+  background: var(--th-bg);
+  color: var(--subtext);
+  text-align: right;
+  padding: .6rem .85rem;
+  font-weight: 600;
+  font-size: .72rem;
+  letter-spacing: .6px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Noto Sans KR', sans-serif;
+}
+thead th:first-child { text-align: left; }
+
+tbody tr:nth-child(odd)  { background: var(--tr-odd); }
+tbody tr:nth-child(even) { background: var(--tr-even); }
+tbody tr:hover           { background: var(--tr-hover); }
+
+tbody td {
+  padding: .42rem .85rem;
+  text-align: right;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td:first-child { text-align: left; font-weight: 600; color: var(--text); }
+tbody tr:last-child td { border-bottom: none; }
+
+.na { color: var(--muted); font-style: italic; }
+
+/* ── 업데이트 시간 ──────────────────────────────────────────────────────── */
+.update-info {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--subtext);
+  font-size: .78rem;
+  margin-top: .6rem;
+}
+
+/* ── 푸터 ────────────────────────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  color: var(--subtext);
+  font-size: .78rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── 로딩 애니메이션 ─────────────────────────────────────────────────────── */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.loading { animation: pulse 1.4s ease-in-out infinite; }
+
+/* ── 알림 토스트 ─────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .65rem 1.2rem;
+  font-size: .84rem;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  pointer-events: none;
+  transition: transform .3s ease, opacity .3s;
+  opacity: 0;
+  white-space: nowrap;
+}
+#toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ── 반응형 ──────────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .site-title { font-size: 1.45rem; }
+  .param-grid { grid-template-columns: 1fr 1fr; }
+  .card { padding: 1.1rem 1.1rem; }
+  .table-header { flex-direction: column; align-items: flex-start; }
+}
   </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- ── 헤더 ──────────────────────────────────────────────────────────────── -->
+  <!-- ── 헤더 ──────────────────────────────────────────────────────────── -->
   <header>
-    <div class="header-text">
-      <h1>🌡️ Skew-T Log-P 단열선도</h1>
-      <p>기상청 API 허브 &nbsp;·&nbsp; 매일 자동 갱신</p>
+    <div class="header-left">
+      <div class="site-eyebrow">고층기상 자동 분석</div>
+      <h1 class="site-title">
+        <span>ZONDE</span> · Skew-T Log-P
+      </h1>
+      <p class="site-sub">기상청 API 허브 &nbsp;·&nbsp; 매일 KST 09:00 자동 갱신</p>
     </div>
-    <button id="theme-toggle" title="다크/라이트 모드 전환" aria-label="테마 전환">🌙</button>
+    <div class="header-controls">
+      <button id="theme-toggle" class="icon-btn" title="다크/라이트 테마 전환"
+              aria-label="테마 전환">🌙</button>
+    </div>
   </header>
 
-  <!-- ── 상태 + 그래프 ─────────────────────────────────────────────────────── -->
+  <!-- ── 그래프 카드 ────────────────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Latest Sounding</div>
+    <div class="card-header">
+      <span class="section-label">Latest Sounding</span>
+      <div class="plot-toolbar">
+        <!-- 이미지 테마 선택 -->
+        <div class="seg-ctrl" role="group" aria-label="이미지 테마">
+          <button class="seg-btn active" id="img-dark-btn"
+                  onclick="switchImgTheme('dark')">🌑 Dark</button>
+          <button class="seg-btn" id="img-light-btn"
+                  onclick="switchImgTheme('light')">☀️ Light</button>
+        </div>
+      </div>
+    </div>
 
-    <div class="badges">
-      <div class="badge"><span class="dot" style="background:var(--green)"></span>자동 갱신 활성</div>
+    <div class="status-row">
+      <div class="badge">
+        <span class="dot dot-green"></span>자동 갱신 활성
+      </div>
       <div class="badge" id="badge-date">
-        <span class="dot" style="background:var(--accent)"></span>
+        <span class="dot dot-accent"></span>
         <span class="loading">불러오는 중…</span>
       </div>
     </div>
 
     <div id="plot-wrap">
-      <div id="plot-placeholder" class="loading">그래프 이미지를 불러오는 중…</div>
+      <div id="plot-placeholder">
+        <div class="spinner"></div>
+        <span>그래프를 불러오는 중…</span>
+      </div>
       <img id="plot-img" src="" alt="Skew-T Log-P 단열선도" style="display:none" />
     </div>
 
-    <div id="update-time"></div>
-    <a id="dl-btn" href="skewt_latest.png" download class="btn">⬇ PNG 다운로드</a>
-  </div>
+    <div class="update-info" id="update-time"></div>
 
-  <!-- ── 파라미터 ──────────────────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-title">Sounding Parameters</div>
-    <div class="param-grid">
-      <div class="param-item">
-        <div class="param-label">CAPE · 대류 유효 위치 에너지</div>
-        <div class="param-value v-cape" id="val-cape">—</div>
-        <div class="param-sub">J/kg</div>
-      </div>
-      <div class="param-item">
-        <div class="param-label">CIN · 대류 억제 에너지</div>
-        <div class="param-value v-cin" id="val-cin">—</div>
-        <div class="param-sub">J/kg</div>
-      </div>
-      <div class="param-item">
-        <div class="param-label">LCL · 들올림 응결 고도</div>
-        <div class="param-value v-lcl" id="val-lcl">—</div>
-        <div class="param-sub" id="sub-lcl"></div>
-      </div>
-      <div class="param-item">
-        <div class="param-label">LFC · 자유 대류 고도</div>
-        <div class="param-value v-lfc" id="val-lfc">—</div>
-        <div class="param-sub" id="sub-lfc"></div>
-      </div>
-      <div class="param-item">
-        <div class="param-label">EL · 평형 고도</div>
-        <div class="param-value v-el" id="val-el">—</div>
-        <div class="param-sub" id="sub-el"></div>
-      </div>
-      <div class="param-item">
-        <div class="param-label">PWAT · 가강수량</div>
-        <div class="param-value v-pwat" id="val-pwat">—</div>
-        <div class="param-sub">mm</div>
-      </div>
+    <div class="dl-row">
+      <button class="btn btn-primary" id="dl-dark-btn" onclick="downloadImg('dark')">
+        ⬇ Dark PNG
+      </button>
+      <button class="btn btn-ghost" id="dl-light-btn" onclick="downloadImg('light')">
+        ⬇ Light PNG
+      </button>
     </div>
   </div>
 
-  <!-- ── 관측 레벨 테이블 ───────────────────────────────────────────────────── -->
+  <!-- ── 파라미터 카드 ─────────────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Observation Levels</div>
+    <div class="card-header">
+      <span class="section-label">Sounding Parameters</span>
+    </div>
+    <div class="param-grid">
+
+      <div class="param-item">
+        <div class="param-key">CAPE</div>
+        <div class="param-label">대류 유효 위치 에너지</div>
+        <div class="param-value v-cape" id="val-cape">—</div>
+        <div class="param-unit">J/kg</div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">CIN</div>
+        <div class="param-label">대류 억제 에너지</div>
+        <div class="param-value v-cin" id="val-cin">—</div>
+        <div class="param-unit">J/kg</div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">LCL</div>
+        <div class="param-label">들올림 응결 고도</div>
+        <div class="param-value v-lcl" id="val-lcl">—</div>
+        <div class="param-sub" id="sub-lcl"></div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">LFC</div>
+        <div class="param-label">자유 대류 고도</div>
+        <div class="param-value v-lfc" id="val-lfc">—</div>
+        <div class="param-sub" id="sub-lfc"></div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">EL</div>
+        <div class="param-label">평형 고도</div>
+        <div class="param-value v-el" id="val-el">—</div>
+        <div class="param-sub" id="sub-el"></div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">PWAT</div>
+        <div class="param-label">가강수량</div>
+        <div class="param-value v-pwat" id="val-pwat">—</div>
+        <div class="param-unit">mm</div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">SHR06</div>
+        <div class="param-label">0–6 km 벌크 시어</div>
+        <div class="param-value v-shr" id="val-shr">—</div>
+        <div class="param-unit">m/s</div>
+      </div>
+
+      <div class="param-item">
+        <div class="param-key">SRH</div>
+        <div class="param-label">0–3 km 폭풍상대소용돌이도</div>
+        <div class="param-value v-srh" id="val-srh">—</div>
+        <div class="param-unit">m²/s²</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 관측 레벨 테이블 카드 ──────────────────────────────────────── -->
+  <div class="card">
+    <div class="table-header">
+      <span class="section-label">Observation Levels</span>
+      <div class="table-dl-row">
+        <button class="btn btn-ghost" onclick="downloadTable('xlsx')">⬇ XLSX</button>
+        <button class="btn btn-ghost" onclick="downloadTable('csv')">⬇ CSV</button>
+        <button class="btn btn-ghost" onclick="downloadTable('txt')">⬇ TXT</button>
+      </div>
+    </div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -377,124 +688,374 @@
           </tr>
         </thead>
         <tbody id="level-tbody">
-          <tr><td colspan="6" class="na loading" style="text-align:center;padding:1.5rem">데이터 불러오는 중…</td></tr>
+          <tr>
+            <td colspan="6" class="na loading"
+                style="text-align:center;padding:1.5rem">
+              데이터 불러오는 중…
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- ── 푸터 ───────────────────────────────────────────────────────── -->
   <footer>
-    <p>데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank">기상청 API 허브</a>
-       &nbsp;|&nbsp;
-       소스코드: <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank">GitHub</a></p>
+    <p>
+      데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank"
+        rel="noopener noreferrer">기상청 API 허브</a>
+      &nbsp;·&nbsp;
+      소스코드: <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze"
+        target="_blank" rel="noopener noreferrer">GitHub</a>
+      &nbsp;·&nbsp;
+      라이브러리: MetPy · matplotlib · pandas
+    </p>
+    <p style="margin-top:.5rem">
+      이 페이지는 공개 기상 데이터를 시각화한 것으로, 공식 기상 예보가 아닙니다.
+    </p>
   </footer>
 
 </div><!-- /container -->
 
+<!-- 알림 토스트 -->
+<div id="toast"></div>
+
+<!-- SheetJS (XLSX 생성) — CDN integrity hash 포함 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+  integrity="sha384-hP1mCrEnhJ4KPAVyMTWioHFf7eVX4nKDi1TxiE5kz/nBvnGFKBkzKjXDpE3oNaS"
+  crossorigin="anonymous"></script>
+
 <script>
-// ── 테마 관리 ──────────────────────────────────────────────────────────────────
-const html = document.documentElement;
-const btn  = document.getElementById('theme-toggle');
+/* ── 보안: textContent 기반 삽입 유틸 (XSS 방지) ───────────────────────────── */
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+/* ── 토스트 알림 ──────────────────────────────────────────────────────────── */
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ── 테마 관리 (사이트 UI 테마) ──────────────────────────────────────────── */
+const html    = document.documentElement;
+const themeBtn = document.getElementById('theme-toggle');
 
 function applyTheme(theme) {
   html.setAttribute('data-theme', theme);
-  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  btn.title = theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환';
-  localStorage.setItem('theme', theme);
+  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  themeBtn.title = theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환';
+  try { localStorage.setItem('zonde_theme', theme); } catch(_) {}
 }
 
-// 초기 테마: 저장값 → 시스템 설정 → dark 순
-const saved  = localStorage.getItem('theme');
-const system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-applyTheme(saved || system);
+(function initTheme() {
+  let saved;
+  try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
+  const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(saved || sys);
+})();
 
-btn.addEventListener('click', () => {
+themeBtn.addEventListener('click', () => {
   applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 });
 
-// 시스템 설정 변경 감지 (수동 전환 안 한 경우에만 따름)
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
+  let saved;
+  try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
+  if (!saved) applyTheme(e.matches ? 'dark' : 'light');
 });
 
-// ── 유틸 ──────────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-const fmt = v => (v === null || v === undefined) ? '<span class="na">N/A</span>' : v;
-const fmtNum = (v, d=1) => (v === null || v === undefined) ? '<span class="na">N/A</span>'
-                           : Number(v).toFixed(d);
+/* ── 이미지 테마 전환 ─────────────────────────────────────────────────────── */
+let _imgTheme = 'dark';
 
-// ── meta.json 로드 ─────────────────────────────────────────────────────────────
+function switchImgTheme(theme) {
+  _imgTheme = theme;
+  document.getElementById('img-dark-btn').classList.toggle('active', theme === 'dark');
+  document.getElementById('img-light-btn').classList.toggle('active', theme === 'light');
+  loadImage();
+}
+
+/* ── 이미지 다운로드 ──────────────────────────────────────────────────────── */
+function downloadImg(theme) {
+  const fname = theme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
+  const a = document.createElement('a');
+  a.href = fname;
+  a.download = fname;
+  a.click();
+  showToast(`${theme === 'dark' ? '🌑 Dark' : '☀️ Light'} PNG 다운로드 시작`);
+}
+
+/* ── 전역 상태 ────────────────────────────────────────────────────────────── */
+let _meta = null;
+
+/* ── meta.json 로드 ───────────────────────────────────────────────────────── */
 async function loadMeta() {
-  let meta;
   try {
     const res = await fetch(`meta.json?t=${Date.now()}`);
-    if (!res.ok) throw new Error(res.status);
-    meta = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+
+    /* JSON 파싱 전 기본 검증 — 서버 응답이 JSON인지 확인 */
+    if (!text.trim().startsWith('{')) throw new Error('비정상 응답');
+
+    _meta = JSON.parse(text);
   } catch (e) {
     console.warn('meta.json 로드 실패:', e);
-    $('plot-placeholder').classList.remove('loading');
-    $('plot-placeholder').textContent = '⚠ 데이터를 불러올 수 없습니다. 아직 Actions가 실행되지 않았을 수 있습니다.';
+    const ph = document.getElementById('plot-placeholder');
+    ph.classList.remove('loading');
+    ph.innerHTML = '<span>⚠ 데이터를 불러올 수 없습니다.<br>Actions가 아직 실행되지 않았을 수 있습니다.</span>';
     return;
   }
 
-  // 날짜 배지
-  $('badge-date').innerHTML =
-    `<span class="dot" style="background:var(--accent)"></span>${meta.generated}`;
-  $('update-time').textContent = `마지막 갱신: ${meta.generated}`;
+  /* 날짜 배지 — textContent 사용으로 XSS 방지 */
+  const bd = document.getElementById('badge-date');
+  bd.innerHTML = '';
+  const dot = document.createElement('span');
+  dot.className = 'dot dot-accent';
+  const txt = document.createTextNode(_meta.generated || '날짜 없음');
+  bd.appendChild(dot);
+  bd.appendChild(txt);
 
-  // 스칼라 파라미터
-  $('val-cape').textContent = fmtNum(meta.cape, 1);
-  $('val-cin').textContent  = fmtNum(meta.cin,  1);
+  setText('update-time', `마지막 갱신: ${_meta.generated || '—'}`);
 
-  function setLevel(key, pId, sId) {
-    const p = meta[key + '_p'], t = meta[key + '_t'];
+  /* 스칼라 파라미터 */
+  const fN = (v, d = 1) => (v === null || v === undefined) ? '—' : Number(v).toFixed(d);
+
+  setText('val-cape', fN(_meta.cape));
+  setText('val-cin',  fN(_meta.cin));
+  setText('val-pwat', fN(_meta.pwat));
+  setText('val-shr',  fN(_meta.shr06));
+  setText('val-srh',  fN(_meta.srh));
+
+  function setLevel(key, vId, sId) {
+    const p = _meta[key + '_p'], t = _meta[key + '_t'];
     if (p !== null && p !== undefined) {
-      $(pId).textContent = p + ' hPa';
-      $(sId).textContent = t + ' °C';
+      setText(vId, p + ' hPa');
+      setText(sId, t + ' °C');
     } else {
-      $(pId).textContent = '없음';
-      $(sId).textContent = '';
+      setText(vId, '없음');
+      setText(sId, '');
     }
   }
   setLevel('lcl', 'val-lcl', 'sub-lcl');
   setLevel('lfc', 'val-lfc', 'sub-lfc');
   setLevel('el',  'val-el',  'sub-el');
-  $('val-pwat').textContent = meta.pwat !== null ? fmtNum(meta.pwat, 1) : '—';
 
-  // 관측 레벨 테이블
-  if (meta.levels && meta.levels.length) {
-    const rows = meta.levels.map(lv => `
-      <tr>
-        <td>${fmtNum(lv.PA, 1)}</td>
-        <td>${lv.GH !== null ? lv.GH : '<span class="na">N/A</span>'}</td>
-        <td>${fmtNum(lv.TA, 1)}</td>
-        <td>${fmtNum(lv.TD, 1)}</td>
-        <td>${lv.WD !== null ? lv.WD : '<span class="na">—</span>'}</td>
-        <td>${lv.WS !== null ? fmtNum(lv.WS, 1) : '<span class="na">—</span>'}</td>
-      </tr>`).join('');
-    $('level-tbody').innerHTML = rows;
-  } else {
-    $('level-tbody').innerHTML =
-      '<tr><td colspan="6" class="na" style="text-align:center;padding:1rem">레벨 데이터 없음</td></tr>';
+  /* 관측 레벨 테이블 */
+  renderTable(_meta.levels || []);
+}
+
+/* ── 테이블 렌더링 (textContent 기반, XSS 안전) ─────────────────────────── */
+function renderTable(levels) {
+  const tbody = document.getElementById('level-tbody');
+  tbody.innerHTML = '';
+
+  if (!levels.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    td.className = 'na';
+    td.style.cssText = 'text-align:center;padding:1rem';
+    td.textContent = '레벨 데이터 없음';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  const fmt = (v, d = 1) => (v === null || v === undefined) ? null : Number(v).toFixed(d);
+  const COLS = [
+    lv => fmt(lv.PA),
+    lv => lv.GH !== null && lv.GH !== undefined ? String(lv.GH) : null,
+    lv => fmt(lv.TA),
+    lv => fmt(lv.TD),
+    lv => lv.WD !== null && lv.WD !== undefined ? String(lv.WD) : null,
+    lv => fmt(lv.WS),
+  ];
+
+  for (const lv of levels) {
+    const tr = document.createElement('tr');
+    COLS.forEach((fn, i) => {
+      const td = document.createElement('td');
+      const val = fn(lv);
+      if (val === null) {
+        td.className = 'na';
+        td.textContent = '—';
+      } else {
+        td.textContent = val;
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
   }
 }
 
-// ── 그래프 이미지 로드 ────────────────────────────────────────────────────────
-function loadImage() {
-  const img  = $('plot-img');
-  const phld = $('plot-placeholder');
-  img.onload = () => { phld.style.display = 'none'; img.style.display = 'block'; };
-  img.onerror = () => {
-    phld.classList.remove('loading');
-    phld.textContent = '⚠ 그래프 이미지를 불러올 수 없습니다.';
-  };
-  img.src = `skewt_latest.png?t=${Date.now()}`;
+/* ── 테이블 다운로드 ──────────────────────────────────────────────────────── */
+const COL_HEADERS = ['기압(hPa)', '고도(m)', '기온(°C)', '이슬점(°C)', '풍향(°)', '풍속(m/s)'];
+const COL_KEYS    = ['PA', 'GH', 'TA', 'TD', 'WD', 'WS'];
+
+function downloadTable(format) {
+  if (!_meta || !_meta.levels) {
+    showToast('⚠ 데이터가 아직 로드되지 않았습니다');
+    return;
+  }
+
+  const levels  = _meta.levels;
+  const dateStr = (_meta.generated || 'unknown').replace(/[:/\s]/g, '_');
+  const fname   = `skewt_levels_${dateStr}`;
+
+  if (format === 'csv') {
+    _dlCSV(levels, fname + '.csv');
+  } else if (format === 'txt') {
+    _dlTXT(levels, fname + '.txt');
+  } else {
+    _dlXLSX(levels, fname + '.xlsx');
+  }
 }
 
-// ── 초기 실행 & 자동 갱신 ─────────────────────────────────────────────────────
+function _dlCSV(levels, filename) {
+  const rows  = [COL_HEADERS.join(',')];
+  for (const lv of levels) {
+    rows.push(COL_KEYS.map(k =>
+      (lv[k] === null || lv[k] === undefined) ? '' : String(lv[k])
+    ).join(','));
+  }
+  _triggerDownload(
+    new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }),
+    filename
+  );
+  showToast('📄 CSV 다운로드 시작');
+}
+
+function _dlTXT(levels, filename) {
+  const COL_W = [10, 8, 8, 10, 8, 10];
+  const pad   = (s, w) => String(s ?? '—').padStart(w);
+  const line  = COL_HEADERS.map((h, i) => h.padStart(COL_W[i])).join('  ');
+  const sep   = '-'.repeat(line.length);
+
+  const rows = [
+    `Skew-T Log-P 단열선도 관측 레벨 데이터`,
+    `생성: ${_meta.generated || ''}`,
+    sep,
+    line,
+    sep,
+  ];
+  for (const lv of levels) {
+    rows.push(COL_KEYS.map((k, i) => pad(lv[k], COL_W[i])).join('  '));
+  }
+  rows.push(sep);
+
+  _triggerDownload(
+    new Blob([rows.join('\r\n')], { type: 'text/plain;charset=utf-8' }),
+    filename
+  );
+  showToast('📄 TXT 다운로드 시작');
+}
+
+function _dlXLSX(levels, filename) {
+  if (typeof XLSX === 'undefined') {
+    showToast('⚠ SheetJS 라이브러리 로드 실패');
+    return;
+  }
+
+  const wsData = [COL_HEADERS];
+  for (const lv of levels) {
+    wsData.push(COL_KEYS.map(k =>
+      (lv[k] === null || lv[k] === undefined) ? '' : lv[k]
+    ));
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  /* 컬럼 너비 */
+  ws['!cols'] = COL_W_XLSX.map(w => ({ wch: w }));
+
+  /* 헤더 스타일 (xlsx 라이브러리 기본 스타일 지원 범위 내) */
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const addr = XLSX.utils.encode_cell({ r: 0, c });
+    if (!ws[addr]) continue;
+    ws[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: 'D9E1F2' } } };
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '관측 레벨');
+
+  /* 메타 시트 */
+  const metaRows = [
+    ['항목', '값'],
+    ['생성 시각', _meta.generated || ''],
+    ['CAPE (J/kg)', _meta.cape ?? ''],
+    ['CIN (J/kg)',  _meta.cin  ?? ''],
+    ['LCL 기압 (hPa)', _meta.lcl_p ?? ''],
+    ['LCL 기온 (°C)',  _meta.lcl_t ?? ''],
+    ['LFC 기압 (hPa)', _meta.lfc_p ?? ''],
+    ['LFC 기온 (°C)',  _meta.lfc_t ?? ''],
+    ['EL 기압 (hPa)',  _meta.el_p  ?? ''],
+    ['EL 기온 (°C)',   _meta.el_t  ?? ''],
+    ['PWAT (mm)',      _meta.pwat  ?? ''],
+    ['SHR06 (m/s)',    _meta.shr06 ?? ''],
+    ['SRH (m²/s²)',    _meta.srh   ?? ''],
+  ];
+  const wsMeta = XLSX.utils.aoa_to_sheet(metaRows);
+  wsMeta['!cols'] = [{ wch: 18 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsMeta, '파라미터');
+
+  XLSX.writeFile(wb, filename);
+  showToast('📊 XLSX 다운로드 시작');
+}
+
+const COL_W_XLSX = [12, 10, 10, 12, 10, 12];
+
+function _triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+/* ── 그래프 이미지 로드 ───────────────────────────────────────────────────── */
+function loadImage() {
+  const img  = document.getElementById('plot-img');
+  const phld = document.getElementById('plot-placeholder');
+  const src  = (_imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png')
+               + `?t=${Date.now()}`;
+
+  /* 이전 핸들러 제거 */
+  img.onload  = null;
+  img.onerror = null;
+  img.style.opacity = '0';
+
+  img.onload = () => {
+    phld.style.display = 'none';
+    img.style.display  = 'block';
+    img.style.opacity  = '1';
+  };
+  img.onerror = () => {
+    /* 다크 실패 시 라이트로, 라이트 실패 시 최종 오류 표시 */
+    if (_imgTheme === 'dark') {
+      img.src = `skewt_light.png?t=${Date.now()}`;
+    } else if (!img.src.includes('skewt_latest')) {
+      img.src = `skewt_latest.png?t=${Date.now()}`;
+    } else {
+      phld.classList.remove('loading');
+      phld.innerHTML = '<span>⚠ 그래프 이미지를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
+    }
+  };
+  img.src = src;
+}
+
+/* ── 초기 실행 & 자동 갱신 (5분) ─────────────────────────────────────────── */
 loadMeta();
 loadImage();
-setInterval(() => { loadMeta(); loadImage(); }, 5 * 60 * 1000); // 5분마다
+setInterval(() => { loadMeta(); loadImage(); }, 5 * 60 * 1000);
 </script>
 </body>
 </html>
