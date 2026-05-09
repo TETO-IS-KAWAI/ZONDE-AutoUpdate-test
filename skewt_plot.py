@@ -120,9 +120,17 @@ def load_data(path: Path) -> pd.DataFrame:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _safe(fn, *args, **kw):
-    """MetPy 계산 중 오류 시 None 반환"""
+    """
+    MetPy 계산 중 오류 또는 nan 결과 시 None 반환
+    LFC/EL 등은 조건이 불충족되면 (nan hPa, nan °C) 튜플을 반환하므로 함께 처리
+    """
     try:
         result = fn(*args, **kw)
+        # 튜플 반환 (p, T) 형태인 경우 nan 체크
+        if isinstance(result, tuple) and len(result) == 2:
+            if np.isnan(result[0].magnitude) or np.isnan(result[1].magnitude):
+                print(f"    [!] {fn.__name__}: 조건 불충족 (nan) → None 처리")
+                return None
         return result
     except Exception as e:
         print(f"    [!] {fn.__name__} 계산 실패: {e}")
@@ -211,24 +219,26 @@ def draw_skewt(params: dict, date_str: str, save_path: Path) -> None:
               label="기층 상승 곡선", zorder=4)
 
     # ── 관측 레벨 점 ──────────────────────────────────────────────────────────
-    tf = skew.ax.get_transform("data")
-    skew.ax.scatter(t.magnitude,  p.magnitude,
-                    color=_C["temp"], s=12, zorder=5, alpha=0.8,
-                    transform=tf, label="_nolegend_")
-    skew.ax.scatter(td.magnitude, p.magnitude,
-                    color=_C["dew"],  s=12, zorder=5, alpha=0.8,
-                    transform=tf, label="_nolegend_")
+    # skew.plot() 은 내부적으로 SkewT 좌표 변환을 처리하므로 scatter 대신 사용
+    skew.plot(p, t,  _C["temp"], linestyle="none",
+              marker="o", markersize=3.5, alpha=0.75, zorder=5)
+    skew.plot(p, td, _C["dew"],  linestyle="none",
+              marker="o", markersize=3.5, alpha=0.75, zorder=5)
 
     # ── 특수 레벨 마커 (LCL / LFC / EL) ─────────────────────────────────────
     def _mark(qty_pair, color, marker, label):
+        """(p_qty, t_qty) 튜플 → SkewT 위에 마커 표시"""
         if qty_pair is None:
             return
-        pv = qty_pair[0].to("hPa").magnitude
-        tv = qty_pair[1].to("degC").magnitude
-        skew.ax.scatter(tv, pv,
-                        color=color, marker=marker, s=90, zorder=7,
-                        edgecolors="white", linewidths=1.0,
-                        transform=tf, label=label)
+        pv = qty_pair[0].to("hPa")
+        tv = qty_pair[1].to("degC")
+        # nan 체크 (MetPy가 nan Quantity를 반환하는 경우 대비)
+        if np.isnan(pv.magnitude) or np.isnan(tv.magnitude):
+            return
+        skew.plot(pv, tv, linestyle="none",
+                  marker=marker, markersize=10, color=color,
+                  markeredgecolor="white", markeredgewidth=1.0,
+                  zorder=7, label=label)
 
     _mark(lcl, _C["lcl_c"], "^", "LCL")
     _mark(lfc, _C["lfc_c"], "s", "LFC")
