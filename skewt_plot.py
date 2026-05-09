@@ -405,7 +405,18 @@ def update_readme(params: dict) -> None:
 
     print("[✓] README.md 갱신 완료")
 
-
+def export_data(df, date_str):
+    filename_base = f"docs/sounding_data_{date_str.replace(' ', '_')}"
+    
+    # 1. CSV 저장
+    df.to_csv(f"{filename_base}.csv", index=False, encoding='utf-8-sig')
+    
+    # 2. Excel 저장 (openpyxl 라이브러리 필요)
+    df.to_excel(f"{filename_base}.xlsx", index=False)
+    
+    # 3. TXT 저장 (고정 폭 형식)
+    with open(f"{filename_base}.txt", 'w', encoding='utf-8') as f:
+        f.write(df.to_string(index=False))
 # ═══════════════════════════════════════════════════════════════════════════════
 # 진입점
 # ═══════════════════════════════════════════════════════════════════════════════
