@@ -116,7 +116,6 @@ def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
 # ── 테마 팔레트 ───────────────────────────────────────────────────────────────
 _DARK: dict = dict(
     bg="0d1117",  # placeholder — set below with #
-    bg        = "#0d1117",
     surface   = "#161b22",
     border    = "#30363d",
     text      = "#e6edf3",
