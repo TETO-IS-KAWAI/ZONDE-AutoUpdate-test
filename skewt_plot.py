@@ -96,18 +96,25 @@ _FONT_CANDIDATES = [
 _FONT_PATH = next((p for p in _FONT_CANDIDATES if Path(p).exists()), None)
 
 if _FONT_PATH:
+    # addfont() 로 직접 등록 → font cache 갱신 없이 즉시 인식 (Actions 환경 안정)
+    fm.fontManager.addfont(_FONT_PATH)
     _KO_FP = fm.FontProperties(fname=_FONT_PATH)
-    matplotlib.rcParams["font.family"] = fm.FontProperties(fname=_FONT_PATH).get_name()
+    _font_name = _KO_FP.get_name()
+    matplotlib.rcParams["font.family"] = _font_name
     matplotlib.rcParams["axes.unicode_minus"] = False
-    print(f"[✓] 한글 폰트: {_FONT_PATH}")
+    print(f"[✓] 한글 폰트: {_FONT_PATH}  ({_font_name})")
 else:
-    _KO_FP = fm.FontProperties()
+    _KO_FP = None
     matplotlib.rcParams["axes.unicode_minus"] = False
     print("[!] 한글 폰트 없음 — 기본 폰트 사용 (한글 깨짐 가능)")
 
 
 def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
-    fp = fm.FontProperties(fname=_KO_FP.get_file(), size=size)
+    """한글 FontProperties 반환. 폰트 없으면 기본 폰트."""
+    if _KO_FP is None:
+        fp = fm.FontProperties(size=size)
+    else:
+        fp = fm.FontProperties(fname=_KO_FP.get_file(), size=size)
     if bold:
         fp.set_weight("bold")
     return fp
@@ -115,7 +122,7 @@ def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
 
 # ── 테마 팔레트 ───────────────────────────────────────────────────────────────
 _DARK: dict = dict(
-    bg="0d1117",  # placeholder — set below with #
+    bg        = "#0d1117",
     surface   = "#161b22",
     border    = "#30363d",
     text      = "#e6edf3",
