@@ -1,257 +1,500 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Skew-T Log-P 단열선도 | 기상청 관측 자동화</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    /* ── CSS 변수 (라이트 / 다크) ───────────────────────────────────────────── */
     :root {
-      --bg:       #0d1117;
-      --surface:  #161b22;
-      --border:   #30363d;
-      --accent:   #58a6ff;
-      --green:    #3fb950;
-      --orange:   #d29922;
-      --red:      #f85149;
-      --text:     #e6edf3;
-      --subtext:  #8b949e;
+      color-scheme: light dark;
     }
+    [data-theme="dark"] {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2128;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --orange:    #d29922;
+      --red:       #f85149;
+      --cyan:      #39d5d5;
+      --text:      #e6edf3;
+      --subtext:   #8b949e;
+      --th-bg:     #21262d;
+      --tr-even:   #161b22;
+      --tr-odd:    #1c2128;
+      --tr-hover:  #2d333b;
+      --shadow:    rgba(0,0,0,0.4);
+    }
+    [data-theme="light"] {
+      --bg:        #f6f8fa;
+      --surface:   #ffffff;
+      --surface2:  #f0f2f5;
+      --border:    #d0d7de;
+      --accent:    #0969da;
+      --green:     #1a7f37;
+      --orange:    #9a6700;
+      --red:       #cf222e;
+      --cyan:      #0a8080;
+      --text:      #1f2328;
+      --subtext:   #656d76;
+      --th-bg:     #eaeef2;
+      --tr-even:   #ffffff;
+      --tr-odd:    #f6f8fa;
+      --tr-hover:  #eaeef2;
+      --shadow:    rgba(0,0,0,0.1);
+    }
+
+    /* ── 시스템 설정 기본값 ─────────────────────────────────────────────────── */
+    @media (prefers-color-scheme: light) {
+      html:not([data-theme]) { /* JS 로드 전 깜박임 방지 */ }
+    }
+
+    /* ── 기본 리셋 ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      font-family: 'Segoe UI', 'Noto Sans KR', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem;
+      transition: background .25s, color .25s;
     }
 
+    /* ── 레이아웃 ───────────────────────────────────────────────────────────── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── 헤더 ───────────────────────────────────────────────────────────────── */
     header {
-      text-align: center;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
       margin-bottom: 2rem;
     }
-    header h1 {
-      font-size: 1.8rem;
+    .header-text h1 {
+      font-size: 1.75rem;
       font-weight: 700;
       color: var(--accent);
-      letter-spacing: -0.5px;
+      letter-spacing: -.5px;
     }
-    header p {
+    .header-text p {
       color: var(--subtext);
-      margin-top: .4rem;
-      font-size: .95rem;
+      font-size: .9rem;
+      margin-top: .25rem;
     }
 
+    /* 다크/라이트 전환 버튼 */
+    #theme-toggle {
+      flex-shrink: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .45rem .75rem;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text);
+      transition: background .2s, border-color .2s;
+      user-select: none;
+    }
+    #theme-toggle:hover { background: var(--border); }
+
+    /* ── 카드 ───────────────────────────────────────────────────────────────── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1.5rem;
-      width: 100%;
-      max-width: 780px;
-      margin-bottom: 1.5rem;
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.4rem;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: background .25s, border-color .25s;
     }
-
     .card-title {
-      font-size: .8rem;
+      font-size: .72rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       color: var(--subtext);
       margin-bottom: 1rem;
+      font-weight: 600;
     }
 
-    /* 배지 행 */
+    /* ── 배지 행 ────────────────────────────────────────────────────────────── */
     .badges {
       display: flex;
-      gap: .8rem;
       flex-wrap: wrap;
+      gap: .6rem;
       margin-bottom: 1.2rem;
     }
     .badge {
       display: inline-flex;
       align-items: center;
       gap: .4rem;
-      background: #1c2128;
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: .3rem .9rem;
-      font-size: .85rem;
+      padding: .25rem .85rem;
+      font-size: .82rem;
+      color: var(--text);
     }
-    .badge .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
-    /* 그래프 */
+    /* ── 그래프 ─────────────────────────────────────────────────────────────── */
+    #plot-wrap {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      min-height: 200px;
+    }
     #plot-img {
       width: 100%;
-      border-radius: 8px;
-      border: 1px solid var(--border);
       display: block;
     }
     #plot-placeholder {
-      height: 300px;
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--subtext);
       font-size: .9rem;
-      border: 1px dashed var(--border);
-      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
     }
 
-    /* 파라미터 그리드 */
+    /* ── 파라미터 그리드 ────────────────────────────────────────────────────── */
     .param-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: .8rem;
+      margin-top: .2rem;
     }
     .param-item {
-      background: #1c2128;
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: .8rem 1rem;
+      transition: background .25s;
     }
-    .param-label { font-size: .75rem; color: var(--subtext); margin-bottom: .2rem; }
-    .param-value { font-size: 1.3rem; font-weight: 700; }
-    .cape-val { color: var(--orange); }
-    .cin-val  { color: var(--accent); }
-
-    /* 업데이트 시간 */
-    #update-time {
-      font-size: .85rem;
+    .param-label {
+      font-size: .72rem;
       color: var(--subtext);
-      text-align: center;
-      margin-top: .5rem;
+      margin-bottom: .2rem;
+      font-weight: 500;
     }
+    .param-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .param-sub {
+      font-size: .72rem;
+      color: var(--subtext);
+      margin-top: .15rem;
+    }
+    .v-cape  { color: var(--orange); }
+    .v-cin   { color: var(--accent); }
+    .v-lcl   { color: #ffd54f; }
+    .v-lfc   { color: var(--green); }
+    .v-el    { color: var(--cyan); }
+    .v-pwat  { color: #b39ddb; }
 
-    /* 새로고침 버튼 */
+    /* ── 관측 레벨 테이블 ───────────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: .4rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    thead th {
+      background: var(--th-bg);
+      color: var(--subtext);
+      text-align: right;
+      padding: .55rem .8rem;
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:first-child { text-align: left; }
+    tbody tr:nth-child(even) { background: var(--tr-even); }
+    tbody tr:nth-child(odd)  { background: var(--tr-odd); }
+    tbody tr:hover           { background: var(--tr-hover); }
+    tbody td {
+      padding: .45rem .8rem;
+      text-align: right;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    tbody td:first-child { text-align: left; font-weight: 600; }
+    tbody tr:last-child td { border-bottom: none; }
+    .na { color: var(--subtext); font-style: italic; }
+
+    /* ── 다운로드 버튼 ──────────────────────────────────────────────────────── */
     .btn {
       display: inline-block;
       background: var(--accent);
-      color: #0d1117;
+      color: #fff;
       border: none;
-      border-radius: 6px;
-      padding: .5rem 1.2rem;
+      border-radius: 7px;
+      padding: .48rem 1.1rem;
       font-size: .85rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
       margin-top: 1rem;
+      transition: opacity .15s;
     }
-    .btn:hover { opacity: .85; }
+    .btn:hover { opacity: .82; }
 
-    footer {
+    /* ── 업데이트 시간 ──────────────────────────────────────────────────────── */
+    #update-time {
       color: var(--subtext);
       font-size: .8rem;
+      margin-top: .7rem;
+    }
+
+    /* ── 푸터 ───────────────────────────────────────────────────────────────── */
+    footer {
       text-align: center;
-      margin-top: 2rem;
+      color: var(--subtext);
+      font-size: .8rem;
+      margin-top: 2.5rem;
     }
     footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
 
-    /* 로딩 애니메이션 */
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    /* ── 로딩 펄스 ──────────────────────────────────────────────────────────── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
     .loading { animation: pulse 1.4s ease-in-out infinite; }
+
+    /* ── 반응형 ─────────────────────────────────────────────────────────────── */
+    @media (max-width: 520px) {
+      .header-text h1 { font-size: 1.35rem; }
+      .param-grid { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
+<div class="container">
 
+  <!-- ── 헤더 ──────────────────────────────────────────────────────────────── -->
   <header>
-    <h1>🌡️ Skew-T Log-P 단열선도</h1>
-    <p>기상청 API 허브 · 매일 자동 갱신</p>
+    <div class="header-text">
+      <h1>🌡️ Skew-T Log-P 단열선도</h1>
+      <p>기상청 API 허브 &nbsp;·&nbsp; 매일 자동 갱신</p>
+    </div>
+    <button id="theme-toggle" title="다크/라이트 모드 전환" aria-label="테마 전환">🌙</button>
   </header>
 
-  <!-- 상태 배지 -->
+  <!-- ── 상태 + 그래프 ─────────────────────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Status</div>
+    <div class="card-title">Latest Sounding</div>
+
     <div class="badges">
-      <div class="badge"><span class="dot" style="background:var(--green)"></span> 자동 갱신 활성</div>
-      <div class="badge" id="badge-date"><span class="dot" style="background:var(--accent)"></span> <span class="loading">로딩 중...</span></div>
+      <div class="badge"><span class="dot" style="background:var(--green)"></span>자동 갱신 활성</div>
+      <div class="badge" id="badge-date">
+        <span class="dot" style="background:var(--accent)"></span>
+        <span class="loading">불러오는 중…</span>
+      </div>
     </div>
 
-    <!-- 그래프 -->
-    <div id="plot-placeholder" class="loading">그래프 이미지를 불러오는 중...</div>
-    <img id="plot-img" src="" alt="Skew-T Log-P 단열선도" style="display:none" />
+    <div id="plot-wrap">
+      <div id="plot-placeholder" class="loading">그래프 이미지를 불러오는 중…</div>
+      <img id="plot-img" src="" alt="Skew-T Log-P 단열선도" style="display:none" />
+    </div>
 
     <div id="update-time"></div>
-    <a href="skewt_latest.png" download class="btn">⬇ PNG 다운로드</a>
+    <a id="dl-btn" href="skewt_latest.png" download class="btn">⬇ PNG 다운로드</a>
   </div>
 
-  <!-- CAPE / CIN 파라미터 -->
+  <!-- ── 파라미터 ──────────────────────────────────────────────────────────── -->
   <div class="card">
     <div class="card-title">Sounding Parameters</div>
     <div class="param-grid">
       <div class="param-item">
-        <div class="param-label">CAPE (대류 유효 위치 에너지)</div>
-        <div class="param-value cape-val" id="val-cape">—</div>
-        <div style="font-size:.75rem;color:var(--subtext);margin-top:.3rem">J/kg</div>
+        <div class="param-label">CAPE · 대류 유효 위치 에너지</div>
+        <div class="param-value v-cape" id="val-cape">—</div>
+        <div class="param-sub">J/kg</div>
       </div>
       <div class="param-item">
-        <div class="param-label">CIN (대류 억제 에너지)</div>
-        <div class="param-value cin-val" id="val-cin">—</div>
-        <div style="font-size:.75rem;color:var(--subtext);margin-top:.3rem">J/kg</div>
+        <div class="param-label">CIN · 대류 억제 에너지</div>
+        <div class="param-value v-cin" id="val-cin">—</div>
+        <div class="param-sub">J/kg</div>
+      </div>
+      <div class="param-item">
+        <div class="param-label">LCL · 들올림 응결 고도</div>
+        <div class="param-value v-lcl" id="val-lcl">—</div>
+        <div class="param-sub" id="sub-lcl"></div>
+      </div>
+      <div class="param-item">
+        <div class="param-label">LFC · 자유 대류 고도</div>
+        <div class="param-value v-lfc" id="val-lfc">—</div>
+        <div class="param-sub" id="sub-lfc"></div>
+      </div>
+      <div class="param-item">
+        <div class="param-label">EL · 평형 고도</div>
+        <div class="param-value v-el" id="val-el">—</div>
+        <div class="param-sub" id="sub-el"></div>
+      </div>
+      <div class="param-item">
+        <div class="param-label">PWAT · 가강수량</div>
+        <div class="param-value v-pwat" id="val-pwat">—</div>
+        <div class="param-sub">mm</div>
       </div>
     </div>
   </div>
 
+  <!-- ── 관측 레벨 테이블 ───────────────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">Observation Levels</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>기압 (hPa)</th>
+            <th>고도 (m)</th>
+            <th>기온 (°C)</th>
+            <th>이슬점 (°C)</th>
+            <th>풍향 (°)</th>
+            <th>풍속 (m/s)</th>
+          </tr>
+        </thead>
+        <tbody id="level-tbody">
+          <tr><td colspan="6" class="na loading" style="text-align:center;padding:1.5rem">데이터 불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <footer>
-    <p>데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank">기상청 API 허브</a> &nbsp;|&nbsp;
+    <p>데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank">기상청 API 허브</a>
+       &nbsp;|&nbsp;
        소스코드: <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank">GitHub</a></p>
   </footer>
 
-  <script>
-    // meta.json 에서 최신 메타데이터 읽기
-    async function loadMeta() {
-      try {
-        const res  = await fetch(`meta.json?t=${Date.now()}`);
-        const meta = await res.json();
+</div><!-- /container -->
 
-        // 날짜 배지
-        document.getElementById('badge-date').innerHTML =
-          `<span class="dot" style="background:var(--accent)"></span>${meta.generated}`;
+<script>
+// ── 테마 관리 ──────────────────────────────────────────────────────────────────
+const html = document.documentElement;
+const btn  = document.getElementById('theme-toggle');
 
-        // CAPE / CIN
-        document.getElementById('val-cape').textContent = meta.cape.toLocaleString();
-        document.getElementById('val-cin').textContent  = meta.cin.toLocaleString();
+function applyTheme(theme) {
+  html.setAttribute('data-theme', theme);
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  btn.title = theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환';
+  localStorage.setItem('theme', theme);
+}
 
-        // 업데이트 시간
-        document.getElementById('update-time').textContent =
-          `마지막 갱신: ${meta.generated}`;
+// 초기 테마: 저장값 → 시스템 설정 → dark 순
+const saved  = localStorage.getItem('theme');
+const system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+applyTheme(saved || system);
 
-        return meta;
-      } catch(e) {
-        console.warn('meta.json 로드 실패:', e);
-        return null;
-      }
+btn.addEventListener('click', () => {
+  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// 시스템 설정 변경 감지 (수동 전환 안 한 경우에만 따름)
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
+});
+
+// ── 유틸 ──────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = v => (v === null || v === undefined) ? '<span class="na">N/A</span>' : v;
+const fmtNum = (v, d=1) => (v === null || v === undefined) ? '<span class="na">N/A</span>'
+                           : Number(v).toFixed(d);
+
+// ── meta.json 로드 ─────────────────────────────────────────────────────────────
+async function loadMeta() {
+  let meta;
+  try {
+    const res = await fetch(`meta.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error(res.status);
+    meta = await res.json();
+  } catch (e) {
+    console.warn('meta.json 로드 실패:', e);
+    $('plot-placeholder').classList.remove('loading');
+    $('plot-placeholder').textContent = '⚠ 데이터를 불러올 수 없습니다. 아직 Actions가 실행되지 않았을 수 있습니다.';
+    return;
+  }
+
+  // 날짜 배지
+  $('badge-date').innerHTML =
+    `<span class="dot" style="background:var(--accent)"></span>${meta.generated}`;
+  $('update-time').textContent = `마지막 갱신: ${meta.generated}`;
+
+  // 스칼라 파라미터
+  $('val-cape').textContent = fmtNum(meta.cape, 1);
+  $('val-cin').textContent  = fmtNum(meta.cin,  1);
+
+  function setLevel(key, pId, sId) {
+    const p = meta[key + '_p'], t = meta[key + '_t'];
+    if (p !== null && p !== undefined) {
+      $(pId).textContent = p + ' hPa';
+      $(sId).textContent = t + ' °C';
+    } else {
+      $(pId).textContent = '없음';
+      $(sId).textContent = '';
     }
+  }
+  setLevel('lcl', 'val-lcl', 'sub-lcl');
+  setLevel('lfc', 'val-lfc', 'sub-lfc');
+  setLevel('el',  'val-el',  'sub-el');
+  $('val-pwat').textContent = meta.pwat !== null ? fmtNum(meta.pwat, 1) : '—';
 
-    // 그래프 이미지 로드
-    function loadImage() {
-      const img = document.getElementById('plot-img');
-      const placeholder = document.getElementById('plot-placeholder');
+  // 관측 레벨 테이블
+  if (meta.levels && meta.levels.length) {
+    const rows = meta.levels.map(lv => `
+      <tr>
+        <td>${fmtNum(lv.PA, 1)}</td>
+        <td>${lv.GH !== null ? lv.GH : '<span class="na">N/A</span>'}</td>
+        <td>${fmtNum(lv.TA, 1)}</td>
+        <td>${fmtNum(lv.TD, 1)}</td>
+        <td>${lv.WD !== null ? lv.WD : '<span class="na">—</span>'}</td>
+        <td>${lv.WS !== null ? fmtNum(lv.WS, 1) : '<span class="na">—</span>'}</td>
+      </tr>`).join('');
+    $('level-tbody').innerHTML = rows;
+  } else {
+    $('level-tbody').innerHTML =
+      '<tr><td colspan="6" class="na" style="text-align:center;padding:1rem">레벨 데이터 없음</td></tr>';
+  }
+}
 
-      img.onload = () => {
-        placeholder.style.display = 'none';
-        img.style.display = 'block';
-      };
-      img.onerror = () => {
-        placeholder.classList.remove('loading');
-        placeholder.textContent = '⚠ 그래프 이미지를 불러올 수 없습니다. 아직 생성 전이거나 오류가 발생했습니다.';
-      };
-      // 캐시 무효화 쿼리 추가
-      img.src = `skewt_latest.png?t=${Date.now()}`;
-    }
+// ── 그래프 이미지 로드 ────────────────────────────────────────────────────────
+function loadImage() {
+  const img  = $('plot-img');
+  const phld = $('plot-placeholder');
+  img.onload = () => { phld.style.display = 'none'; img.style.display = 'block'; };
+  img.onerror = () => {
+    phld.classList.remove('loading');
+    phld.textContent = '⚠ 그래프 이미지를 불러올 수 없습니다.';
+  };
+  img.src = `skewt_latest.png?t=${Date.now()}`;
+}
 
-    // 초기 실행
-    loadMeta();
-    loadImage();
-
-    // 5분마다 자동 새로고침 (Actions가 실행 중일 경우 대비)
-    setInterval(() => { loadMeta(); loadImage(); }, 300_000);
-  </script>
+// ── 초기 실행 & 자동 갱신 ─────────────────────────────────────────────────────
+loadMeta();
+loadImage();
+setInterval(() => { loadMeta(); loadImage(); }, 5 * 60 * 1000); // 5분마다
+</script>
 </body>
 </html>
