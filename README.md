@@ -46,11 +46,13 @@ Actions 탭 **Run workflow**
 ---
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도 (2026년 05월 09일 15:02 KST)
+### 최신 단열선도 — 2026년 05월 09일 21:15 KST
 
 ![CAPE](https://img.shields.io/badge/CAPE-0%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN-0%20J%2Fkg-blue)
 
-![Skew-T Log-P](docs/skewt_latest.png)
+| 다크 테마 | 라이트 테마 |
+|-----------|-------------|
+| ![Skew-T Dark](docs/skewt_dark.png) | ![Skew-T Light](docs/skewt_light.png) |
 <!-- SKEWT_AUTO_END -->
 
 ---

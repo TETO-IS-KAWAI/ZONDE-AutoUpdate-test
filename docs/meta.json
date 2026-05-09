@@ -1,15 +1,17 @@
 {
-  "generated": "2026년 05월 09일 15:02 KST",
+  "generated": "2026년 05월 09일 21:15 KST",
   "file_date": "20260509",
   "cape": 0.0,
   "cin": 0.0,
-  "lcl_p": 927.0,
+  "lcl_p": 927.2,
   "lcl_t": 6.3,
   "lfc_p": null,
   "lfc_t": null,
   "el_p": null,
   "el_t": null,
   "pwat": 10.0,
+  "shr06": 27.5,
+  "srh": null,
   "levels": [
     {
       "PA": 1015.0,
