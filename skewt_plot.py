@@ -63,7 +63,28 @@ _C = dict(
     el_c    = "#40c4ff",
 )
 
+def plot_skewt(df, date_str, theme='dark'):
+    # 테마 설정
+    if theme == 'dark':
+        plt.style.use('dark_background')
+        fig_color = '#121212' # 대시보드와 어울리는 짙은 색
+        line_colors = {'temp': '#ff6347', 'dew': '#00bfff', 'parcel': '#ffff00'}
+    else:
+        plt.style.use('default')
+        fig_color = 'white'
+        line_colors = {'temp': 'red', 'dew': 'blue', 'parcel': 'orange'}
 
+    fig = plt.figure(figsize=(10, 10), facecolor=fig_color)
+    # ... (MetPy SkewT 생성 로직) ...
+    
+    # 디자인 디테일: 선 두께 및 가독성 향상
+    skew.plot(p, T, color=line_colors['temp'], linewidth=2.5, label='기온 (°C)')
+    skew.plot(p, Td, color=line_colors['dew'], linewidth=2.5, linestyle='--', label='이슬점 (°C)')
+    
+    # Legend 및 폰트 강제 적용 (3번 팁 반영)
+    skew.ax.legend(loc='upper right', prop=font_prop, frameon=True, shadow=True)
+    
+    plt.savefig(f'docs/skewt_{theme}.png', facecolor=fig.get_facecolor(), bbox_inches='tight')
 # ═══════════════════════════════════════════════════════════════════════════════
 # 1. 데이터 수집
 # ═══════════════════════════════════════════════════════════════════════════════
