@@ -1,6 +1,9 @@
 # ZONDE API Analyze
 기상청 API 허브를 이용한 **Skew-T Log-P 단열선도** 자동 생성 프로젝트
+
 ...의 테스트 전용 레포 / 여러 기능들 임의로 추가하고 삭제할 생각입니다
+
+완전히 만들고 나서 비활성화 후 원본 레포에 옮길 예정?..
 ## 웹페이지로 보기
 **[LINK](https://teto-is-kawai.github.io/ZONDE-AutoUpdate-test)**
 
@@ -43,11 +46,13 @@ Actions 탭 **Run workflow**
 ---
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도 (2026년 05월 09일 15:02 KST)
+### 최신 단열선도 — 2026년 05월 09일 21:15 KST
 
 ![CAPE](https://img.shields.io/badge/CAPE-0%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN-0%20J%2Fkg-blue)
 
-![Skew-T Log-P](docs/skewt_latest.png)
+| 다크 테마 | 라이트 테마 |
+|-----------|-------------|
+| ![Skew-T Dark](docs/skewt_dark.png) | ![Skew-T Light](docs/skewt_light.png) |
 <!-- SKEWT_AUTO_END -->
 
 ---
