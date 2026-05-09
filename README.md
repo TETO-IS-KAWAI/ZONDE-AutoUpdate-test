@@ -1,6 +1,9 @@
 # ZONDE API Analyze
 기상청 API 허브를 이용한 **Skew-T Log-P 단열선도** 자동 생성 프로젝트
+
 ...의 테스트 전용 레포 / 여러 기능들 임의로 추가하고 삭제할 생각입니다
+
+완전히 만들고 나서 비활성화 후 원본 레포에 옮길 예정?..
 ## 웹페이지로 보기
 **[LINK](https://teto-is-kawai.github.io/ZONDE-AutoUpdate-test)**
 
