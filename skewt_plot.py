@@ -124,97 +124,97 @@ def compute_params(df):
                 el_p=el_p,   el_t=el_t)
 
 
-def draw_skewt(params: dict, date_str: str, save_path: Path):
-    """Skew-T Log-P 단열선도 생성 및 저장"""
+def draw_skewt(params: dict, date_str: str, save_path_base: Path):
+    """
+    Skew-T Log-P 단열선도 생성 및 저장 (다크/라이트 통합)
+    save_path_base: 파일명 접두사 (예: Path("docs/skewt"))
+    """
     p, t, td, prof = params["p"], params["t"], params["td"], params["prof"]
     cape = params["cape"].magnitude
     cin  = params["cin"].magnitude
 
-    fig = plt.figure(figsize=(9, 11), facecolor="#0d1117")
-    skew = SkewT(fig, rotation=45)
-    ax = skew.ax
+    # 테마 리스트 (수정 요청사항 3번 반영)
+    themes = ['dark', 'light']
 
-    # 배경 스타일
-    ax.set_facecolor("#0d1117")
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#444")
+    for theme in themes:
+        # [중요] 이전 루프의 스타일이나 잔상을 완전히 제거
+        plt.close('all')
+        
+        if theme == 'dark':
+            plt.style.use('dark_background')
+            bg_color = "#0d1117"     # 배경색
+            grid_color = "#333333"   # 격자색
+            text_color = "white"     # 텍스트색
+            box_color = "#1e2a38"    # 텍스트 박스색
+        else:
+            plt.style.use('default') # 기본 테마(화이트)로 초기화
+            bg_color = "white"
+            grid_color = "#dddddd"
+            text_color = "black"
+            box_color = "#f0f0f0"
 
-    # 등압선
-    for pres in [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100]:
-        ax.axhline(pres, lw=0.6, color="#333", zorder=0)
+        fig = plt.figure(figsize=(9, 11), facecolor=bg_color)
+        skew = SkewT(fig, rotation=45)
+        ax = skew.ax
+        ax.set_facecolor(bg_color)
 
-    # 단열선
-    skew.plot_dry_adiabats(colors="#3a6e3a", linewidth=0.7, linestyle="--", alpha=0.6)
-    skew.plot_moist_adiabats(colors="#1a6e4e", linewidth=0.7, linestyle="-.", alpha=0.6)
-    skew.plot_mixing_lines(
-        colors="#6e3a1a", linewidth=0.6, linestyle=":",
-        alpha=0.7, pressure=np.arange(100, 1051, 10) * units.hPa
-    )
+        # 5번: 시각화 이미지 색상 및 두께 개선
+        # 온도 / 이슬점 / 기층 상승 곡선
+        skew.plot(p, t, "tomato", linewidth=2.2, label="기온 (°C)")
+        skew.plot(p, td, "#4fc3f7", linewidth=2.2, linestyle="dashed", label="이슬점 (°C)")
+        skew.plot(p, prof, "#ffd54f", linewidth=1.6, linestyle="dashed", label="기층 상승 곡선")
 
-    # 온도 / 이슬점 / 기층 상승 곡선
-    skew.plot(p, t,   "tomato",      linewidth=1.8, label="기온 (°C)")
-    skew.plot(p, td,  "#4fc3f7",     linewidth=1.8, linestyle="dashed", label="이슬점 (°C)")
-    skew.plot(p, prof,"#ffd54f",     linewidth=1.4, linestyle="dashed", label="기층 상승 곡선")
+        # 단열선 및 배경 격자
+        skew.plot_dry_adiabats(colors="#3a6e3a", linewidth=0.8, linestyle="--", alpha=0.4)
+        skew.plot_moist_adiabats(colors="#1a6e4e", linewidth=0.8, linestyle="-.", alpha=0.4)
+        skew.plot_mixing_lines(colors="#6e3a1a", linewidth=0.7, linestyle=":", alpha=0.4)
 
-    # CAPE / CIN 음영
-    skew.shade_cape(p, t, prof, facecolor="tomato",   alpha=0.25)
-    skew.shade_cin (p, t, prof, facecolor="steelblue", alpha=0.25)
+        for pres in [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100]:
+            ax.axhline(pres, lw=0.6, color=grid_color, zorder=0)
 
-    # 특수 레벨 마커
-    marker_kw = dict(zorder=5, s=60, transform=skew.ax.get_xaxis_transform())
-    if params["lcl_p"] is not None:
-        ax.scatter(
-            params["lcl_t"].magnitude, params["lcl_p"].magnitude,
-            color="yellow", marker="^", label="LCL", **marker_kw
-        )
-    if params["lfc_p"] is not None:
-        ax.scatter(
-            params["lfc_t"].magnitude, params["lfc_p"].magnitude,
-            color="lime", marker="s", label="LFC", **marker_kw
-        )
-    if params["el_p"] is not None:
-        ax.scatter(
-            params["el_t"].magnitude, params["el_p"].magnitude,
-            color="cyan", marker="D", label="EL", **marker_kw
-        )
+        # CAPE / CIN 음영
+        skew.shade_cape(p, t, prof, facecolor="tomato", alpha=0.3)
+        skew.shade_cin(p, t, prof, facecolor="steelblue", alpha=0.3)
 
-    # 축 설정
-    ax.set_ylim(1050, 100)
-    ax.set_xlim(-40, 45)
-    ax.set_xlabel("기온 (°C)", color="#ccc", fontsize=10)
-    ax.set_ylabel("기압 (hPa)", color="#ccc", fontsize=10)
-    ax.tick_params(colors="#aaa")
+        # 2번: 마커 및 Legend 수정 (zorder 상향으로 가려짐 방지)
+        marker_kw = dict(zorder=10, s=80, transform=ax.get_xaxis_transform())
+        if params.get("lcl_p") is not None:
+            ax.scatter(params["lcl_t"].magnitude, params["lcl_p"].magnitude, 
+                       color="yellow", marker="^", label="LCL", **marker_kw)
+        if params.get("lfc_p") is not None:
+            ax.scatter(params["lfc_t"].magnitude, params["lfc_p"].magnitude, 
+                       color="lime", marker="s", label="LFC", **marker_kw)
+        if params.get("el_p") is not None:
+            ax.scatter(params["el_t"].magnitude, params["el_p"].magnitude, 
+                       color="cyan", marker="D", label="EL", **marker_kw)
 
-    # 제목
-    ax.set_title(
-        f"Skew-T Log-P 단열선도\n{date_str}",
-        color="white", fontsize=13, fontweight="bold", pad=12
-    )
+        # 6번: 텍스트 및 레이블 수정 (한글 폰트 명시적 적용 권장)
+        ax.set_ylim(1050, 100)
+        ax.set_xlim(-40, 45)
+        ax.set_xlabel("기온 (°C)", color=text_color, fontsize=11)
+        ax.set_ylabel("기압 (hPa)", color=text_color, fontsize=11)
+        ax.tick_params(colors=text_color)
 
-    # CAPE / CIN 텍스트 박스
-    info_text = (
-        f"CAPE : {cape:6.1f} J/kg\n"
-        f"CIN  : {cin:6.1f} J/kg"
-    )
-    ax.text(
-        0.02, 0.02, info_text,
-        transform=ax.transAxes,
-        fontsize=9, color="white",
-        verticalalignment="bottom",
-        bbox=dict(facecolor="#1e2a38", edgecolor="#555", alpha=0.85, pad=5)
-    )
+        ax.set_title(f"Skew-T Log-P 단열선도 ({theme.upper()})\n{date_str}", 
+                     color=text_color, fontsize=14, fontweight="bold", pad=15)
 
-    # 범례
-    legend = ax.legend(
-        loc="upper right", fontsize=8,
-        facecolor="#1e2a38", edgecolor="#555",
-        labelcolor="white"
-    )
+        # 하단 정보 텍스트 박스
+        info_text = f"CAPE : {cape:6.1f} J/kg\nCIN  : {cin:6.1f} J/kg"
+        ax.text(0.03, 0.03, info_text, transform=ax.transAxes, fontsize=10, 
+                color=text_color, family='monospace', verticalalignment="bottom",
+                bbox=dict(facecolor=box_color, edgecolor=grid_color, alpha=0.8, pad=6))
 
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-    plt.close(fig)
-    print(f"[✓] 그래프 저장 완료: {save_path}")
+        # 범례
+        ax.legend(loc="upper right", fontsize=9, facecolor=box_color, 
+                  edgecolor=grid_color, labelcolor=text_color)
+
+        # 3번: 다크/화이트 구분 저장
+        final_save_path = f"{save_path_base}_{theme}.png"
+        plt.tight_layout()
+        # [중요] facecolor를 지정해야 화이트/다크 배경이 파일에 제대로 기록됨
+        plt.savefig(final_save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        print(f"[✓] {theme} 그래프 저장 완료: {final_save_path}")
+
     return cape, cin
 
 
