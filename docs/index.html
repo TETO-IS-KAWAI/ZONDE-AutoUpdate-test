@@ -1054,23 +1054,39 @@ function _triggerDownload(blob, filename) {
 function loadImage() {
   const img  = $('plot-img');
   const phld = $('plot-placeholder');
-  const src  = (_imgTheme==='dark'?'skewt_dark.png':'skewt_light.png')+`?t=${Date.now()}`;
-  img.onload=null; img.onerror=null;
-  img.style.opacity='0';
-  img.onload=()=>{
-    phld.style.display='none';
-    img.style.display='block';
-    img.style.opacity='1';
+
+  // ?t= 캐시 버스터 제거 — 브라우저가 src 변경을 다운로드로 오인하는 문제 방지
+  // 5분 자동갱신은 페이지 리로드로 대신 처리
+  const fname = _imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
+
+  // 이미 같은 파일이면 재요청 안 함
+  if (img.src.endsWith(fname) && img.style.display === 'block') return;
+
+  img.onload  = null;
+  img.onerror = null;
+  img.style.opacity = '0';
+
+  let _fallbackTried = false;
+
+  img.onload = () => {
+    phld.style.display = 'none';
+    img.style.display  = 'block';
+    img.style.opacity  = '1';
   };
-  img.onerror=()=>{
-    if (_imgTheme==='dark') img.src=`skewt_light.png?t=${Date.now()}`;
-    else if (!img.src.includes('skewt_latest')) img.src=`skewt_latest.png?t=${Date.now()}`;
-    else {
+
+  img.onerror = () => {
+    if (!_fallbackTried) {
+      _fallbackTried = true;
+      // 다크 실패 → 라이트, 라이트 실패 → latest
+      const fallback = _imgTheme === 'dark' ? 'skewt_light.png' : 'skewt_latest.png';
+      img.src = fallback;
+    } else {
       phld.classList.remove('loading');
-      phld.innerHTML='<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
+      phld.innerHTML = '<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
     }
   };
-  img.src=src;
+
+  img.src = fname;
 }
 
 /* ── 파라미터 카드 shimmer + 3D tilt ─────────────────────────────────────── */
@@ -1118,7 +1134,7 @@ document.querySelectorAll('.reveal').forEach(el => _io.observe(el));
 /* ── 초기 실행 ──────────────────────────────────────────────────────────────── */
 loadMeta();
 loadImage();
-setInterval(()=>{loadMeta();loadImage();}, 5*60*1000);
+setInterval(()=>{ loadMeta(); }, 5*60*1000);  // 이미지는 매일 1회만 갱신
 </script>
 </body>
 </html>
