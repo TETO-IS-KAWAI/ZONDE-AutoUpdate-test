@@ -780,12 +780,12 @@ tbody tr:hover::before{transform:scaleY(1)}
       <table>
         <thead>
           <tr>
-            <th>기압 (hPa)</th>
-            <th>고도 (m)</th>
-            <th>기온 (°C)</th>
-            <th>이슬점 (°C)</th>
-            <th>풍향 (°)</th>
-            <th>풍속 (m/s)</th>
+            <th>Pressure<br><span style="font-weight:400;text-transform:none">(hPa)</span></th>
+            <th>Height<br><span style="font-weight:400;text-transform:none">(m)</span></th>
+            <th>Temp<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
+            <th>Dew Point<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
+            <th>Wind Dir<br><span style="font-weight:400;text-transform:none">(°)</span></th>
+            <th>Wind Spd<br><span style="font-weight:400;text-transform:none">(m/s)</span></th>
           </tr>
         </thead>
         <tbody id="level-tbody">
@@ -874,6 +874,18 @@ function downloadImg(theme) {
 let _meta = null;
 
 /* ── meta.json 로드 ─────────────────────────────────────────────────────────── */
+/* ── 숫자 카운트업 ───────────────────────────────────────────────────────── */
+function animateCount(el, target, decimals, duration) {
+  if (!el || target === null || target === undefined || isNaN(target)) return;
+  const start = performance.now();
+  (function step(now) {
+    const t    = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = (target * ease).toFixed(decimals);
+    if (t < 1) requestAnimationFrame(step);
+  })(start);
+}
+
 async function loadMeta() {
   try {
     const res  = await fetch(`meta.json?t=${Date.now()}`);
@@ -897,25 +909,19 @@ async function loadMeta() {
   /* 수치 포맷 */
   const fN = (v, d=1) => (v===null||v===undefined) ? '—' : Number(v).toFixed(d);
 
-  // 카운트업 애니메이션
+  // 첫 로드: 카운트업 / 이후 갱신: 바로 세팅
+  const _nums = [
+    ['val-cape', _meta.cape,  1],
+    ['val-cin',  _meta.cin,   1],
+    ['val-pwat', _meta.pwat,  1],
+    ['val-shr',  _meta.shr06, 1],
+    ['val-srh',  _meta.srh,   0],
+  ];
   if (!window._countupDone) {
     window._countupDone = true;
-    const nums = [
-      ['val-cape', _meta.cape, 1],
-      ['val-cin',  _meta.cin,  1],
-      ['val-pwat', _meta.pwat, 1],
-      ['val-shr',  _meta.shr06,1],
-      ['val-srh',  _meta.srh,  0],
-    ];
-    nums.forEach(([id, val, d]) => {
-      if (val !== null && val !== undefined) animateCount($(id), val, d, 900);
-    });
+    _nums.forEach(([id, val, d]) => animateCount($(id), val, d, 900));
   } else {
-    setText('val-cape', fN(_meta.cape));
-    setText('val-cin',  fN(_meta.cin));
-    setText('val-pwat', fN(_meta.pwat));
-    setText('val-shr',  fN(_meta.shr06));
-    setText('val-srh',  fN(_meta.srh, 0));
+    _nums.forEach(([id, val, d]) => setText(id, fN(val, d)));
   }
   function setLevel(key, vId, sId) {
     const p = _meta[key+'_p'], t = _meta[key+'_t'];
@@ -1048,23 +1054,39 @@ function _triggerDownload(blob, filename) {
 function loadImage() {
   const img  = $('plot-img');
   const phld = $('plot-placeholder');
-  const src  = (_imgTheme==='dark'?'skewt_dark.png':'skewt_light.png')+`?t=${Date.now()}`;
-  img.onload=null; img.onerror=null;
-  img.style.opacity='0';
-  img.onload=()=>{
-    phld.style.display='none';
-    img.style.display='block';
-    img.style.opacity='1';
+
+  // ?t= 캐시 버스터 제거 — 브라우저가 src 변경을 다운로드로 오인하는 문제 방지
+  // 5분 자동갱신은 페이지 리로드로 대신 처리
+  const fname = _imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
+
+  // 이미 같은 파일이면 재요청 안 함
+  if (img.src.endsWith(fname) && img.style.display === 'block') return;
+
+  img.onload  = null;
+  img.onerror = null;
+  img.style.opacity = '0';
+
+  let _fallbackTried = false;
+
+  img.onload = () => {
+    phld.style.display = 'none';
+    img.style.display  = 'block';
+    img.style.opacity  = '1';
   };
-  img.onerror=()=>{
-    if (_imgTheme==='dark') img.src=`skewt_light.png?t=${Date.now()}`;
-    else if (!img.src.includes('skewt_latest')) img.src=`skewt_latest.png?t=${Date.now()}`;
-    else {
+
+  img.onerror = () => {
+    if (!_fallbackTried) {
+      _fallbackTried = true;
+      // 다크 실패 → 라이트, 라이트 실패 → latest
+      const fallback = _imgTheme === 'dark' ? 'skewt_light.png' : 'skewt_latest.png';
+      img.src = fallback;
+    } else {
       phld.classList.remove('loading');
-      phld.innerHTML='<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
+      phld.innerHTML = '<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
     }
   };
-  img.src=src;
+
+  img.src = fname;
 }
 
 /* ── 파라미터 카드 shimmer + 3D tilt ─────────────────────────────────────── */
@@ -1112,7 +1134,7 @@ document.querySelectorAll('.reveal').forEach(el => _io.observe(el));
 /* ── 초기 실행 ──────────────────────────────────────────────────────────────── */
 loadMeta();
 loadImage();
-setInterval(()=>{loadMeta();loadImage();}, 5*60*1000);
+setInterval(()=>{ loadMeta(); }, 5*60*1000);  // 이미지는 매일 1회만 갱신
 </script>
 </body>
 </html>
