@@ -1,680 +1,781 @@
 <!DOCTYPE html>
 <html lang="ko" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="기상청 API 허브 고층기상 자동 분석 — Skew-T Log-P 단열선도 매일 자동 갱신" />
-  <!-- CSP: inline script/style 허용, 외부 리소스 제한 -->
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://img.shields.io; connect-src 'self';" />
-  <title>ZONDE · Skew-T Log-P 단열선도</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ZONDE · Skew-T Log-P</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════════ */
+:root {
+  --red:        #FB3640;
+  --red-dim:    rgba(251,54,64,.12);
+  --red-glow:   rgba(251,54,64,.35);
+  --blue:       #0F4C75;
+  --blue-light: #3282B8;
+  --sky:        #BBE1FA;
 
-  <!-- Google Fonts: Noto Sans KR -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  --bg:         #0C0C0C;
+  --bg2:        #141414;
+  --bg3:        #1E1E1E;
+  --bg4:        #2C2C2C;
+  --border:     rgba(255,255,255,.08);
+  --border2:    rgba(255,255,255,.14);
+  --text:       #E8E8E8;
+  --sub:        #888;
+  --muted:      #555;
 
-  <style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   CSS 변수 — 다크 / 라이트
-═══════════════════════════════════════════════════════════════════════════ */
-[data-theme="dark"] {
-  --bg:         #0a0e17;
-  --bg2:        #0d1117;
-  --surface:    #161b22;
-  --surface2:   #1c2128;
-  --surface3:   #21262d;
-  --border:     #30363d;
-  --border2:    #3d444d;
-  --accent:     #4493f8;
-  --accent2:    #79c0ff;
-  --green:      #3fb950;
-  --orange:     #d29922;
-  --red:        #f85149;
-  --yellow:     #e3b341;
-  --cyan:       #39c5cf;
-  --purple:     #a371f7;
-  --text:       #e6edf3;
-  --text2:      #c9d1d9;
-  --subtext:    #8b949e;
-  --muted:      #484f58;
-  --th-bg:      #1c2128;
-  --tr-odd:     #161b22;
-  --tr-even:    #0d1117;
-  --tr-hover:   #21262d;
-  --shadow:     0 4px 24px rgba(0,0,0,.5);
-  --shadow-sm:  0 2px 8px  rgba(0,0,0,.3);
-  --glow:       0 0 20px rgba(68,147,248,.15);
+  --radius:     10px;
+  --font-body:  'Pretendard', sans-serif;
+  --font-disp:  'Bebas Neue', sans-serif;
+  --ease:       cubic-bezier(.22,1,.36,1);
 }
 [data-theme="light"] {
-  --bg:         #f0f2f5;
-  --bg2:        #f6f8fa;
-  --surface:    #ffffff;
-  --surface2:   #f6f8fa;
-  --surface3:   #eaeef2;
-  --border:     #d0d7de;
-  --border2:    #b8c0cc;
-  --accent:     #0969da;
-  --accent2:    #0550ae;
-  --green:      #1a7f37;
-  --orange:     #9a6700;
-  --red:        #cf222e;
-  --yellow:     #9a6700;
-  --cyan:       #0a8080;
-  --purple:     #6e40c9;
-  --text:       #1f2328;
-  --text2:      #36393e;
-  --subtext:    #656d76;
-  --muted:      #9198a1;
-  --th-bg:      #eaeef2;
-  --tr-odd:     #ffffff;
-  --tr-even:    #f6f8fa;
-  --tr-hover:   #eaeef2;
-  --shadow:     0 4px 24px rgba(0,0,0,.1);
-  --shadow-sm:  0 2px 8px  rgba(0,0,0,.06);
-  --glow:       0 0 20px rgba(9,105,218,.1);
+  --bg:         #F4F4F4;
+  --bg2:        #FFFFFF;
+  --bg3:        #EAEAEA;
+  --bg4:        #D8D8D8;
+  --border:     rgba(0,0,0,.08);
+  --border2:    rgba(0,0,0,.14);
+  --text:       #111111;
+  --sub:        #555;
+  --muted:      #999;
+  --red-dim:    rgba(251,54,64,.07);
 }
 
-/* ── 리셋 + 기본 ─────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ═══════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background .3s,color .3s;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
 
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.65;
-  min-height: 100vh;
-  transition: background .3s, color .3s;
+/* ═══════════════════════════════════════════════════════
+   NOISE TEXTURE OVERLAY
+═══════════════════════════════════════════════════════ */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:.03;
+  pointer-events:none;
+  z-index:0;
 }
 
-/* ── 배경 노이즈 텍스처 (다크 모드에서 미묘한 깊이감) ────────────────── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(ellipse 80% 60% at 20% 10%,
-      rgba(68,147,248,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 80% 90%,
-      rgba(57,197,207,.03) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════ */
+.wrap{
+  position:relative;z-index:1;
+  max-width:900px;
+  margin:0 auto;
+  padding:0 1.25rem 6rem;
 }
 
-/* ── 레이아웃 ────────────────────────────────────────────────────────────── */
-.container {
-  position: relative;
-  z-index: 1;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 5rem;
+/* ═══════════════════════════════════════════════════════
+   HERO HEADER
+═══════════════════════════════════════════════════════ */
+.hero{
+  padding:3.5rem 0 2.5rem;
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+  position:relative;
+}
+.hero::after{
+  content:'';
+  position:absolute;
+  left:-1.25rem; right:-1.25rem; bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--border2) 30%,var(--border2) 70%,transparent);
+}
+.hero-eyebrow{
+  font-size:.72rem;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--red);
+  font-weight:600;
+}
+.hero-title{
+  font-family:var(--font-disp);
+  font-size:clamp(3.2rem,9vw,6rem);
+  line-height:.95;
+  letter-spacing:.02em;
+  color:var(--text);
+}
+.hero-title span{color:var(--red)}
+.hero-sub{
+  font-size:.85rem;
+  color:var(--sub);
+  margin-top:.25rem;
+}
+.hero-controls{
+  position:absolute;
+  top:3.5rem; right:0;
+  display:flex;
+  gap:.5rem;
+  align-items:center;
 }
 
-/* ── 헤더 ────────────────────────────────────────────────────────────────── */
-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 2rem;
+/* ═══════════════════════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════════════════════ */
+.status-bar{
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:.9rem 1.2rem;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin:1.8rem 0 1rem;
+  font-size:.8rem;
+  color:var(--sub);
+  flex-wrap:wrap;
+}
+.status-dot{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 8px var(--red-glow);
+  animation:pulse-dot 2s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes pulse-dot{
+  0%,100%{box-shadow:0 0 8px var(--red-glow)}
+  50%{box-shadow:0 0 16px var(--red-glow),0 0 32px var(--red-dim)}
+}
+.status-date{color:var(--text);font-weight:500}
+.status-time{margin-left:auto;font-size:.75rem}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION LABEL
+═══════════════════════════════════════════════════════ */
+.sec-label{
+  font-size:.68rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
+  margin-bottom:.8rem;
 }
 
-.header-left { flex: 1; }
-
-.site-eyebrow {
-  font-size: .7rem;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: .4rem;
+/* ═══════════════════════════════════════════════════════
+   PLOT CARD
+═══════════════════════════════════════════════════════ */
+.plot-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:1rem;
+}
+.plot-toolbar{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  padding:.75rem 1rem;
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.plot-toolbar .sec-label{margin:0;flex:1}
+.img-toggle{
+  display:flex;
+  background:var(--bg3);
+  border-radius:6px;
+  padding:3px;
+  gap:2px;
+}
+.img-toggle button{
+  padding:.28rem .75rem;
+  font-size:.75rem;
+  font-weight:600;
+  border-radius:4px;
+  color:var(--sub);
+  transition:background .2s,color .2s;
+  letter-spacing:.04em;
+}
+.img-toggle button.active{
+  background:var(--red);
+  color:#fff;
+}
+.plot-body{
+  position:relative;
+  min-height:240px;
+  background:var(--bg);
+}
+#plot-img{
+  width:100%;
+  display:none;
+  transition:opacity .4s var(--ease);
+}
+#plot-placeholder{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);
+  font-size:.85rem;
+  text-align:center;
+  padding:2rem;
+}
+#plot-placeholder.loading::after{
+  content:'';
+  display:block;
+  width:28px;height:28px;
+  border:2px solid var(--border2);
+  border-top-color:var(--red);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin:1rem auto 0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.plot-footer{
+  display:flex;
+  gap:.5rem;
+  padding:.75rem 1rem;
+  border-top:1px solid var(--border);
+  flex-wrap:wrap;
+  align-items:center;
+}
+#update-time{
+  font-size:.75rem;
+  color:var(--muted);
+  margin-left:auto;
 }
 
-.site-title {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -.5px;
-  line-height: 1.2;
+/* ═══════════════════════════════════════════════════════
+   PARAMS GRID
+═══════════════════════════════════════════════════════ */
+.params-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
+  gap:.6rem;
+  margin-bottom:1rem;
+}
+.param-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:.9rem 1rem 1rem;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .2s,transform .2s;
+}
+.param-card:hover{
+  border-color:var(--border2);
+  transform:translateY(-2px);
+}
+.param-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--accent-line,transparent);
+  transition:opacity .2s;
+}
+.param-card.red::before  {--accent-line:var(--red)}
+.param-card.blue::before {--accent-line:var(--blue-light)}
+.param-card.amber::before{--accent-line:#F0A500}
+.param-card.teal::before {--accent-line:#00B4A0}
+.param-card.sky::before  {--accent-line:var(--sky)}
+
+.param-label{
+  font-size:.68rem;
+  color:var(--muted);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  font-weight:600;
+  margin-bottom:.35rem;
+}
+.param-name{
+  font-size:.78rem;
+  color:var(--sub);
+  margin-bottom:.5rem;
+  font-weight:400;
+}
+.param-value{
+  font-family:var(--font-disp);
+  font-size:2rem;
+  line-height:1;
+  letter-spacing:.02em;
+}
+.param-card.red  .param-value{color:var(--red)}
+.param-card.blue .param-value{color:var(--blue-light)}
+.param-card.amber .param-value{color:#F0A500}
+.param-card.teal .param-value{color:#00B4A0}
+.param-card.sky  .param-value{color:var(--sky)}
+.param-sub{
+  font-size:.72rem;
+  color:var(--muted);
+  margin-top:.3rem;
 }
 
-.site-title span {
-  color: var(--accent);
+/* ═══════════════════════════════════════════════════════
+   TABLE SECTION
+═══════════════════════════════════════════════════════ */
+.table-section{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:1rem;
+}
+.table-head{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.75rem 1rem;
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.table-head .sec-label{margin:0;flex:1}
+.table-wrap{overflow-x:auto}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.8rem;
+  font-variant-numeric:tabular-nums;
+}
+thead th{
+  background:var(--bg3);
+  color:var(--muted);
+  text-align:right;
+  padding:.55rem .9rem;
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border-bottom:1px solid var(--border2);
+  white-space:nowrap;
+}
+thead th:first-child{text-align:left;padding-left:1.1rem}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg3)}
+tbody td{
+  padding:.45rem .9rem;
+  text-align:right;
+  color:var(--text);
+  white-space:nowrap;
+  transition:background .15s;
+}
+tbody td:first-child{
+  text-align:left;
+  padding-left:1.1rem;
+  font-weight:600;
+  color:var(--red);
+}
+.na{color:var(--muted);font-style:italic}
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  padding:.38rem .9rem;
+  font-size:.78rem;
+  font-weight:600;
+  border-radius:6px;
+  letter-spacing:.03em;
+  transition:background .2s,color .2s,border-color .2s,transform .1s;
+  white-space:nowrap;
+  user-select:none;
+}
+.btn:active{transform:scale(.97)}
+
+.btn-primary{
+  background:var(--red);
+  color:#fff;
+}
+.btn-primary:hover{background:#e02c35}
+
+.btn-outline{
+  background:transparent;
+  color:var(--sub);
+  border:1px solid var(--border2);
+}
+.btn-outline:hover{
+  border-color:var(--red);
+  color:var(--red);
+  background:var(--red-dim);
 }
 
-.site-sub {
-  color: var(--subtext);
-  font-size: .85rem;
-  margin-top: .35rem;
-  font-weight: 400;
+.btn-ghost{
+  background:var(--bg3);
+  color:var(--sub);
+}
+.btn-ghost:hover{background:var(--bg4);color:var(--text)}
+
+/* 테마/아이콘 버튼 */
+.icon-btn{
+  width:34px;height:34px;
+  border-radius:8px;
+  font-size:.95rem;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s;
+}
+.icon-btn:hover{background:var(--bg4);border-color:var(--border2)}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+#toast{
+  position:fixed;
+  bottom:2rem;left:50%;
+  transform:translateX(-50%) translateY(1rem);
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  color:var(--text);
+  font-size:.8rem;
+  padding:.6rem 1.2rem;
+  border-radius:100px;
+  opacity:0;
+  transition:opacity .25s,transform .25s var(--ease);
+  pointer-events:none;
+  z-index:9999;
+  white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
 }
 
-/* 헤더 우측 컨트롤 */
-.header-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: .5rem;
-  flex-shrink: 0;
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════ */
+.footer{
+  text-align:center;
+  padding:2rem 0 0;
+  color:var(--muted);
+  font-size:.75rem;
+  border-top:1px solid var(--border);
+}
+.footer a{color:var(--red);transition:opacity .2s}
+.footer a:hover{opacity:.7}
+.footer-logo{
+  font-family:var(--font-disp);
+  font-size:1.4rem;
+  letter-spacing:.1em;
+  color:var(--border2);
+  margin-bottom:.5rem;
 }
 
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  color: var(--text);
-  transition: background .2s, border-color .2s, transform .15s;
-  user-select: none;
+/* ═══════════════════════════════════════════════════════
+   ENTRANCE ANIMATION
+═══════════════════════════════════════════════════════ */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
 }
-.icon-btn:hover {
-  background: var(--surface2);
-  border-color: var(--border2);
-  transform: scale(1.06);
+.anim{
+  opacity:0;
+  animation:fadeUp .55s var(--ease) forwards;
 }
+.anim-1{animation-delay:.05s}
+.anim-2{animation-delay:.12s}
+.anim-3{animation-delay:.20s}
+.anim-4{animation-delay:.28s}
+.anim-5{animation-delay:.36s}
 
-/* ── 카드 ────────────────────────────────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  box-shadow: var(--shadow-sm);
-  transition: background .3s, border-color .3s;
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════ */
+@media(max-width:540px){
+  .hero-title{font-size:3rem}
+  .params-grid{grid-template-columns:1fr 1fr}
+  .plot-toolbar{gap:.4rem}
+  .hero-controls{position:static;margin-top:.5rem;flex-direction:row}
 }
 
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.1rem;
-  gap: .75rem;
+/* ═══════════════════════════════════════════════════════
+   DYNAMIC EFFECTS
+═══════════════════════════════════════════════════════ */
+
+/* 배경 그라디언트 drift */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(251,54,64,.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 80% 20%, rgba(15,76,117,.06) 0%, transparent 55%);
+  pointer-events:none;
+  z-index:0;
+  animation:bgdrift 18s ease-in-out infinite alternate;
+}
+@keyframes bgdrift{
+  0%  {opacity:.6; transform:scale(1)   translateX(0)   translateY(0)}
+  33% {opacity:1;  transform:scale(1.05) translateX(1%)  translateY(-1%)}
+  66% {opacity:.8; transform:scale(.98) translateX(-1%) translateY(1%)}
+  100%{opacity:1;  transform:scale(1.03) translateX(.5%) translateY(-.5%)}
 }
 
-.section-label {
-  font-size: .68rem;
-  font-weight: 700;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  color: var(--subtext);
+/* 파라미터 카드 shimmer + tilt */
+.param-card{
+  transform-style:preserve-3d;
+  will-change:transform;
+  cursor:default;
+}
+.param-card .shimmer{
+  position:absolute;inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .3s;
+  background:radial-gradient(
+    circle at var(--mx,50%) var(--my,50%),
+    rgba(255,255,255,.10) 0%,
+    rgba(255,255,255,.03) 40%,
+    transparent 70%
+  );
+  z-index:1;
+}
+.param-card:hover .shimmer{opacity:1}
+
+/* 카드 내 콘텐츠가 shimmer 위로 */
+.param-card > *:not(.shimmer){position:relative;z-index:2}
+
+/* ripple 버튼 */
+.btn{position:relative;overflow:hidden}
+.ripple{
+  position:absolute;
+  border-radius:50%;
+  transform:scale(0);
+  animation:ripple-anim .5s linear;
+  background:rgba(255,255,255,.2);
+  pointer-events:none;
+}
+@keyframes ripple-anim{
+  to{transform:scale(4);opacity:0}
 }
 
-/* ── 상태 배지 ──────────────────────────────────────────────────────────── */
-.status-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .55rem;
-  margin-bottom: 1.1rem;
+/* 테이블 행 hover 라인 */
+tbody tr{
+  position:relative;
+  transition:background .15s;
+}
+tbody tr::before{
+  content:'';
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:2px;
+  background:var(--red);
+  transform:scaleY(0);
+  transition:transform .2s var(--ease);
+  transform-origin:center;
+}
+tbody tr:hover::before{transform:scaleY(1)}
+
+/* 플롯 이미지 fade */
+#plot-img{
+  transition:opacity .45s var(--ease);
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: .22rem .75rem;
-  font-size: .78rem;
-  color: var(--text2);
-  font-weight: 500;
+/* 상태 dot hover glow 강화 */
+.status-bar:hover .status-dot{
+  box-shadow:0 0 20px var(--red-glow),0 0 40px rgba(251,54,64,.2);
 }
 
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
+/* 히어로 타이틀 글자 개별 애니메이션 */
+.hero-char{
+  display:inline-block;
+  transition:color .3s, transform .3s var(--ease);
+}
+.hero-title:hover .hero-char{
+  color:var(--red);
+}
+.hero-title:hover .hero-char:nth-child(odd){
+  transform:translateY(-3px);
+}
+.hero-title:hover .hero-char:nth-child(even){
+  transform:translateY(3px);
 }
 
-.dot-green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.dot-accent { background: var(--accent); }
-
-/* ── 이미지 뷰어 ─────────────────────────────────────────────────────────── */
-.plot-toolbar {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  flex-wrap: wrap;
+/* 플롯 카드 테두리 glow on hover */
+.plot-card{
+  transition:box-shadow .3s, border-color .3s;
+}
+.plot-card:hover{
+  box-shadow:0 0 0 1px rgba(251,54,64,.2), 0 8px 40px rgba(0,0,0,.4);
 }
 
-/* 테마 토글 세그먼트 */
-.seg-ctrl {
-  display: inline-flex;
-  background: var(--surface3);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 3px;
-  gap: 2px;
+/* 섹션 레이블 등장 언더라인 */
+.sec-label{
+  position:relative;
+  display:inline-block;
 }
 
-.seg-btn {
-  padding: .3rem .75rem;
-  border-radius: 6px;
-  font-size: .78rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--subtext);
-  transition: background .18s, color .18s;
-  font-family: inherit;
+/* img toggle 버튼 전환 애니메이션 */
+.img-toggle button{
+  position:relative;
+  overflow:hidden;
+  transition:background .25s var(--ease), color .25s;
 }
 
-.seg-btn.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+/* 스크롤 reveal */
+.reveal{
+  opacity:0;
+  transform:translateY(20px);
+  transition:opacity .55s var(--ease), transform .55s var(--ease);
+}
+.reveal.visible{
+  opacity:1;
+  transform:translateY(0);
 }
 
-#plot-wrap {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  min-height: 180px;
-  margin-top: .75rem;
+/* footer logo hover */
+.footer-logo{
+  transition:color .3s, letter-spacing .3s;
+  cursor:default;
+}
+.footer-logo:hover{
+  color:var(--red);
+  letter-spacing:.2em;
 }
 
-#plot-img {
-  width: 100%;
-  display: block;
-  transition: opacity .3s;
+/* param value 카운트업 효과용 */
+.param-value{
+  transition:transform .2s var(--ease);
+}
+.param-card:hover .param-value{
+  transform:scale(1.04);
 }
 
-#plot-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--subtext);
-  font-size: .9rem;
-  gap: .75rem;
-  padding: 2rem;
-  text-align: center;
-}
-
-.spinner {
-  width: 32px; height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* 다운로드 버튼 그룹 */
-.dl-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  margin-top: 1rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  border: none;
-  border-radius: 8px;
-  padding: .45rem 1rem;
-  font-size: .82rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity .15s, transform .1s;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.btn:hover  { opacity: .85; transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
-
-.btn-primary { background: var(--accent);  color: #fff; }
-.btn-ghost   { background: var(--surface3); color: var(--text2);
-               border: 1px solid var(--border); }
-.btn-outline { background: transparent; color: var(--accent);
-               border: 1px solid var(--accent); }
-
-/* ── 파라미터 그리드 ─────────────────────────────────────────────────────── */
-.param-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: .75rem;
-}
-
-.param-item {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: .9rem 1.1rem;
-  transition: background .3s, border-color .2s, transform .15s;
-  cursor: default;
-}
-.param-item:hover {
-  border-color: var(--border2);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.param-label {
-  font-size: .68rem;
-  color: var(--subtext);
-  margin-bottom: .25rem;
-  font-weight: 500;
-  letter-spacing: .3px;
-}
-
-.param-key {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .78rem;
-  font-weight: 500;
-  color: var(--muted);
-  margin-bottom: .1rem;
-}
-
-.param-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  line-height: 1.2;
-}
-
-.param-unit {
-  font-size: .7rem;
-  color: var(--subtext);
-  margin-top: .15rem;
-  font-weight: 400;
-}
-
-.param-sub {
-  font-size: .72rem;
-  color: var(--subtext);
-  margin-top: .12rem;
-}
-
-/* 파라미터 색상 */
-.v-cape   { color: var(--orange); }
-.v-cin    { color: var(--accent); }
-.v-lcl    { color: var(--yellow); }
-.v-lfc    { color: var(--green);  }
-.v-el     { color: var(--cyan);   }
-.v-pwat   { color: var(--purple); }
-.v-shr    { color: var(--red);    }
-.v-srh    { color: #f78166;       }
-
-/* ── 관측 테이블 ─────────────────────────────────────────────────────────── */
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .75rem;
-  flex-wrap: wrap;
-  gap: .5rem;
-}
-
-.table-dl-row {
-  display: flex;
-  gap: .4rem;
-  flex-wrap: wrap;
-}
-
-.table-wrap {
-  overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .82rem;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-thead th {
-  background: var(--th-bg);
-  color: var(--subtext);
-  text-align: right;
-  padding: .6rem .85rem;
-  font-weight: 600;
-  font-size: .72rem;
-  letter-spacing: .6px;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border);
-  font-family: 'Noto Sans KR', sans-serif;
-}
-thead th:first-child { text-align: left; }
-
-tbody tr:nth-child(odd)  { background: var(--tr-odd); }
-tbody tr:nth-child(even) { background: var(--tr-even); }
-tbody tr:hover           { background: var(--tr-hover); }
-
-tbody td {
-  padding: .42rem .85rem;
-  text-align: right;
-  color: var(--text2);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-tbody td:first-child { text-align: left; font-weight: 600; color: var(--text); }
-tbody tr:last-child td { border-bottom: none; }
-
-.na { color: var(--muted); font-style: italic; }
-
-/* ── 업데이트 시간 ──────────────────────────────────────────────────────── */
-.update-info {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  color: var(--subtext);
-  font-size: .78rem;
-  margin-top: .6rem;
-}
-
-/* ── 푸터 ────────────────────────────────────────────────────────────────── */
-footer {
-  text-align: center;
-  color: var(--subtext);
-  font-size: .78rem;
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-}
-footer a { color: var(--accent); text-decoration: none; }
-footer a:hover { text-decoration: underline; }
-
-/* ── 로딩 애니메이션 ─────────────────────────────────────────────────────── */
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-.loading { animation: pulse 1.4s ease-in-out infinite; }
-
-/* ── 알림 토스트 ─────────────────────────────────────────────────────────── */
-#toast {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: .65rem 1.2rem;
-  font-size: .84rem;
-  color: var(--text);
-  box-shadow: var(--shadow);
-  z-index: 1000;
-  pointer-events: none;
-  transition: transform .3s ease, opacity .3s;
-  opacity: 0;
-  white-space: nowrap;
-}
-#toast.show {
-  transform: translateX(-50%) translateY(0);
-  opacity: 1;
-}
-
-/* ── 반응형 ──────────────────────────────────────────────────────────────── */
-@media (max-width: 560px) {
-  .site-title { font-size: 1.45rem; }
-  .param-grid { grid-template-columns: 1fr 1fr; }
-  .card { padding: 1.1rem 1.1rem; }
-  .table-header { flex-direction: column; align-items: flex-start; }
-}
-  </style>
+</style>
 </head>
 <body>
-<div class="container">
+<div id="toast"></div>
 
-  <!-- ── 헤더 ──────────────────────────────────────────────────────────── -->
-  <header>
-    <div class="header-left">
-      <div class="site-eyebrow">고층기상 자동 분석</div>
-      <h1 class="site-title">
-        <span>ZONDE</span> · Skew-T Log-P
-      </h1>
-      <p class="site-sub">기상청 API 허브 &nbsp;·&nbsp; 매일 KST 09:00 자동 갱신</p>
-    </div>
-    <div class="header-controls">
-      <button id="theme-toggle" class="icon-btn" title="다크/라이트 테마 전환"
-              aria-label="테마 전환">🌙</button>
+<div class="wrap">
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
+  <header class="hero anim anim-1">
+    <div class="hero-eyebrow">기상청 API 허브 · 자동 관측</div>
+    <h1 class="hero-title">SKEW<span>-</span>T<br>LOG<span>-</span>P</h1>
+    <p class="hero-sub">라디오존데 단열선도 · 매일 자동 갱신</p>
+    <div class="hero-controls">
+      <button class="icon-btn" id="theme-toggle" title="테마 전환" aria-label="테마 전환">☀️</button>
     </div>
   </header>
 
-  <!-- ── 그래프 카드 ────────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-header">
-      <span class="section-label">Latest Sounding</span>
-      <div class="plot-toolbar">
-        <!-- 이미지 테마 선택 -->
-        <div class="seg-ctrl" role="group" aria-label="이미지 테마">
-          <button class="seg-btn active" id="img-dark-btn"
-                  onclick="switchImgTheme('dark')">🌑 Dark</button>
-          <button class="seg-btn" id="img-light-btn"
-                  onclick="switchImgTheme('light')">☀️ Light</button>
-        </div>
+  <!-- ── STATUS BAR ────────────────────────────────────────────────────────── -->
+  <div class="status-bar anim anim-2">
+    <span class="status-dot"></span>
+    <span>자동 갱신 활성</span>
+    <span class="status-date" id="badge-date">—</span>
+    <span class="status-time" id="update-time"></span>
+  </div>
+
+  <!-- ── PLOT ──────────────────────────────────────────────────────────────── -->
+  <div class="plot-card anim anim-3">
+    <div class="plot-toolbar">
+      <span class="sec-label">Sounding Diagram</span>
+      <div class="img-toggle">
+        <button id="img-dark-btn"  class="active" onclick="switchImgTheme('dark')">DARK</button>
+        <button id="img-light-btn"           onclick="switchImgTheme('light')">LIGHT</button>
       </div>
     </div>
-
-    <div class="status-row">
-      <div class="badge">
-        <span class="dot dot-green"></span>자동 갱신 활성
-      </div>
-      <div class="badge" id="badge-date">
-        <span class="dot dot-accent"></span>
-        <span class="loading">불러오는 중…</span>
-      </div>
+    <div class="plot-body">
+      <div id="plot-placeholder" class="loading"></div>
+      <img id="plot-img" alt="Skew-T Log-P Diagram"/>
     </div>
-
-    <div id="plot-wrap">
-      <div id="plot-placeholder">
-        <div class="spinner"></div>
-        <span>그래프를 불러오는 중…</span>
-      </div>
-      <img id="plot-img" src="" alt="Skew-T Log-P 단열선도" style="display:none" />
-    </div>
-
-    <div class="update-info" id="update-time"></div>
-
-    <div class="dl-row">
-      <button class="btn btn-primary" id="dl-dark-btn" onclick="downloadImg('dark')">
-        ⬇ Dark PNG
-      </button>
-      <button class="btn btn-ghost" id="dl-light-btn" onclick="downloadImg('light')">
-        ⬇ Light PNG
-      </button>
+    <div class="plot-footer">
+      <button class="btn btn-primary" onclick="downloadImg('dark')">⬇ Dark PNG</button>
+      <button class="btn btn-outline" onclick="downloadImg('light')">⬇ Light PNG</button>
+      <span id="update-time2"></span>
     </div>
   </div>
 
-  <!-- ── 파라미터 카드 ─────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-header">
-      <span class="section-label">Sounding Parameters</span>
+  <!-- ── PARAMS ────────────────────────────────────────────────────────────── -->
+  <p class="sec-label anim anim-3">Sounding Parameters</p>
+  <div class="params-grid anim anim-4">
+
+    <div class="param-card red">
+      <div class="param-label">CAPE</div>
+      <div class="param-name">대류 유효 위치 에너지</div>
+      <div class="param-value" id="val-cape">—</div>
+      <div class="param-sub">J/kg</div>
     </div>
-    <div class="param-grid">
 
-      <div class="param-item">
-        <div class="param-key">CAPE</div>
-        <div class="param-label">대류 유효 위치 에너지</div>
-        <div class="param-value v-cape" id="val-cape">—</div>
-        <div class="param-unit">J/kg</div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">CIN</div>
-        <div class="param-label">대류 억제 에너지</div>
-        <div class="param-value v-cin" id="val-cin">—</div>
-        <div class="param-unit">J/kg</div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">LCL</div>
-        <div class="param-label">들올림 응결 고도</div>
-        <div class="param-value v-lcl" id="val-lcl">—</div>
-        <div class="param-sub" id="sub-lcl"></div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">LFC</div>
-        <div class="param-label">자유 대류 고도</div>
-        <div class="param-value v-lfc" id="val-lfc">—</div>
-        <div class="param-sub" id="sub-lfc"></div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">EL</div>
-        <div class="param-label">평형 고도</div>
-        <div class="param-value v-el" id="val-el">—</div>
-        <div class="param-sub" id="sub-el"></div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">PWAT</div>
-        <div class="param-label">가강수량</div>
-        <div class="param-value v-pwat" id="val-pwat">—</div>
-        <div class="param-unit">mm</div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">SHR06</div>
-        <div class="param-label">0–6 km 벌크 시어</div>
-        <div class="param-value v-shr" id="val-shr">—</div>
-        <div class="param-unit">m/s</div>
-      </div>
-
-      <div class="param-item">
-        <div class="param-key">SRH</div>
-        <div class="param-label">0–3 km 폭풍상대소용돌이도</div>
-        <div class="param-value v-srh" id="val-srh">—</div>
-        <div class="param-unit">m²/s²</div>
-      </div>
-
+    <div class="param-card blue">
+      <div class="param-label">CIN</div>
+      <div class="param-name">대류 억제 에너지</div>
+      <div class="param-value" id="val-cin">—</div>
+      <div class="param-sub">J/kg</div>
     </div>
+
+    <div class="param-card amber">
+      <div class="param-label">LCL</div>
+      <div class="param-name">들올림 응결 고도</div>
+      <div class="param-value" id="val-lcl" style="font-size:1.25rem;line-height:1.3">—</div>
+      <div class="param-sub" id="sub-lcl"></div>
+    </div>
+
+    <div class="param-card teal">
+      <div class="param-label">LFC</div>
+      <div class="param-name">자유 대류 고도</div>
+      <div class="param-value" id="val-lfc" style="font-size:1.25rem;line-height:1.3">—</div>
+      <div class="param-sub" id="sub-lfc"></div>
+    </div>
+
+    <div class="param-card sky">
+      <div class="param-label">EL</div>
+      <div class="param-name">평형 고도</div>
+      <div class="param-value" id="val-el" style="font-size:1.25rem;line-height:1.3">—</div>
+      <div class="param-sub" id="sub-el"></div>
+    </div>
+
+    <div class="param-card" style="--accent-line:#B39DDB">
+      <div class="param-label">PWAT</div>
+      <div class="param-name">가강수량</div>
+      <div class="param-value" id="val-pwat" style="color:#B39DDB">—</div>
+      <div class="param-sub">mm</div>
+    </div>
+
+    <div class="param-card" style="--accent-line:#80CBC4">
+      <div class="param-label">SHR06</div>
+      <div class="param-name">0–6 km 벌크 윈드시어</div>
+      <div class="param-value" id="val-shr" style="color:#80CBC4">—</div>
+      <div class="param-sub">m/s</div>
+    </div>
+
+    <div class="param-card" style="--accent-line:#FFCC80">
+      <div class="param-label">SRH</div>
+      <div class="param-name">0–3 km 폭풍 상대 헬리시티</div>
+      <div class="param-value" id="val-srh" style="color:#FFCC80;font-size:1.3rem">—</div>
+      <div class="param-sub">m²/s²</div>
+    </div>
+
   </div>
 
-  <!-- ── 관측 레벨 테이블 카드 ──────────────────────────────────────── -->
-  <div class="card">
-    <div class="table-header">
-      <span class="section-label">Observation Levels</span>
-      <div class="table-dl-row">
-        <button class="btn btn-ghost" onclick="downloadTable('xlsx')">⬇ XLSX</button>
-        <button class="btn btn-ghost" onclick="downloadTable('csv')">⬇ CSV</button>
-        <button class="btn btn-ghost" onclick="downloadTable('txt')">⬇ TXT</button>
-      </div>
+  <!-- ── TABLE ─────────────────────────────────────────────────────────────── -->
+  <div class="table-section anim anim-5">
+    <div class="table-head">
+      <span class="sec-label">Observation Levels</span>
+      <button class="btn btn-ghost" onclick="downloadTable('xlsx')">⬇ XLSX</button>
+      <button class="btn btn-ghost" onclick="downloadTable('csv')">⬇ CSV</button>
+      <button class="btn btn-ghost" onclick="downloadTable('txt')">⬇ TXT</button>
     </div>
-
     <div class="table-wrap">
       <table>
         <thead>
@@ -688,61 +789,47 @@ footer a:hover { text-decoration: underline; }
           </tr>
         </thead>
         <tbody id="level-tbody">
-          <tr>
-            <td colspan="6" class="na loading"
-                style="text-align:center;padding:1.5rem">
-              데이터 불러오는 중…
-            </td>
-          </tr>
+          <tr><td colspan="6" class="na" style="text-align:center;padding:1.5rem">
+            데이터 불러오는 중…
+          </td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ── 푸터 ───────────────────────────────────────────────────────── -->
-  <footer>
+  <!-- ── FOOTER ────────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-logo">ZONDE</div>
     <p>
-      데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank"
-        rel="noopener noreferrer">기상청 API 허브</a>
+      데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank" rel="noopener">기상청 API 허브</a>
       &nbsp;·&nbsp;
-      소스코드: <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze"
-        target="_blank" rel="noopener noreferrer">GitHub</a>
-      &nbsp;·&nbsp;
-      라이브러리: MetPy · matplotlib · pandas
+      <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank" rel="noopener">GitHub</a>
     </p>
-    <p style="margin-top:.5rem">
-      이 페이지는 공개 기상 데이터를 시각화한 것으로, 공식 기상 예보가 아닙니다.
-    </p>
+    <p style="margin-top:.4rem">© 2025 TETO-IS-KAWAI · MIT License</p>
   </footer>
 
-</div><!-- /container -->
-
-<!-- 알림 토스트 -->
-<div id="toast"></div>
-
-<!-- SheetJS (XLSX 생성) — CDN integrity hash 포함 -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</div><!-- /wrap -->
 
 <script>
-/* ── 보안: textContent 기반 삽입 유틸 (XSS 방지) ───────────────────────────── */
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
+'use strict';
 
-/* ── 토스트 알림 ──────────────────────────────────────────────────────────── */
-let _toastTimer = null;
+/* ── 유틸 ──────────────────────────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const setText = (id, v) => { const el=$(id); if(el) el.textContent=v; };
+
+/* ── 토스트 ─────────────────────────────────────────────────────────────────── */
+let _toastTimer;
 function showToast(msg) {
-  const t = document.getElementById('toast');
+  const t = $('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-/* ── 테마 관리 (사이트 UI 테마) ──────────────────────────────────────────── */
-const html    = document.documentElement;
-const themeBtn = document.getElementById('theme-toggle');
+/* ── 테마 관리 ──────────────────────────────────────────────────────────────── */
+const html     = document.documentElement;
+const themeBtn = $('theme-toggle');
 
 function applyTheme(theme) {
   html.setAttribute('data-theme', theme);
@@ -758,302 +845,274 @@ function applyTheme(theme) {
   applyTheme(saved || sys);
 })();
 
-themeBtn.addEventListener('click', () => {
-  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-});
-
+themeBtn.addEventListener('click', () =>
+  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+);
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  let saved;
-  try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
+  let saved; try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
   if (!saved) applyTheme(e.matches ? 'dark' : 'light');
 });
 
-/* ── 이미지 테마 전환 ─────────────────────────────────────────────────────── */
+/* ── 이미지 테마 전환 ───────────────────────────────────────────────────────── */
 let _imgTheme = 'dark';
-
 function switchImgTheme(theme) {
   _imgTheme = theme;
-  document.getElementById('img-dark-btn').classList.toggle('active', theme === 'dark');
-  document.getElementById('img-light-btn').classList.toggle('active', theme === 'light');
+  $('img-dark-btn').classList.toggle('active', theme === 'dark');
+  $('img-light-btn').classList.toggle('active', theme === 'light');
   loadImage();
 }
 
-/* ── 이미지 다운로드 ──────────────────────────────────────────────────────── */
+/* ── 이미지 다운로드 ────────────────────────────────────────────────────────── */
 function downloadImg(theme) {
   const fname = theme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
   const a = document.createElement('a');
-  a.href = fname;
-  a.download = fname;
-  a.click();
+  a.href = fname; a.download = fname; a.click();
   showToast(`${theme === 'dark' ? '🌑 Dark' : '☀️ Light'} PNG 다운로드 시작`);
 }
 
-/* ── 전역 상태 ────────────────────────────────────────────────────────────── */
+/* ── 전역 상태 ──────────────────────────────────────────────────────────────── */
 let _meta = null;
 
-/* ── meta.json 로드 ───────────────────────────────────────────────────────── */
+/* ── meta.json 로드 ─────────────────────────────────────────────────────────── */
 async function loadMeta() {
   try {
-    const res = await fetch(`meta.json?t=${Date.now()}`);
+    const res  = await fetch(`meta.json?t=${Date.now()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
-
-    /* JSON 파싱 전 기본 검증 — 서버 응답이 JSON인지 확인 */
     if (!text.trim().startsWith('{')) throw new Error('비정상 응답');
-
     _meta = JSON.parse(text);
-  } catch (e) {
+  } catch(e) {
     console.warn('meta.json 로드 실패:', e);
-    const ph = document.getElementById('plot-placeholder');
+    const ph = $('plot-placeholder');
     ph.classList.remove('loading');
     ph.innerHTML = '<span>⚠ 데이터를 불러올 수 없습니다.<br>Actions가 아직 실행되지 않았을 수 있습니다.</span>';
     return;
   }
 
-  /* 날짜 배지 — textContent 사용으로 XSS 방지 */
-  const bd = document.getElementById('badge-date');
-  bd.innerHTML = '';
-  const dot = document.createElement('span');
-  dot.className = 'dot dot-accent';
-  const txt = document.createTextNode(_meta.generated || '날짜 없음');
-  bd.appendChild(dot);
-  bd.appendChild(txt);
+  /* 날짜 배지 */
+  const bd = $('badge-date');
+  bd.textContent = _meta.generated || '날짜 없음';
+  setText('update-time', `갱신: ${_meta.generated || '—'}`);
 
-  setText('update-time', `마지막 갱신: ${_meta.generated || '—'}`);
+  /* 수치 포맷 */
+  const fN = (v, d=1) => (v===null||v===undefined) ? '—' : Number(v).toFixed(d);
 
-  /* 스칼라 파라미터 */
-  const fN = (v, d = 1) => (v === null || v === undefined) ? '—' : Number(v).toFixed(d);
-
-  setText('val-cape', fN(_meta.cape));
-  setText('val-cin',  fN(_meta.cin));
-  setText('val-pwat', fN(_meta.pwat));
-  setText('val-shr',  fN(_meta.shr06));
-  setText('val-srh',  fN(_meta.srh));
-
+  // 카운트업 애니메이션
+  if (!window._countupDone) {
+    window._countupDone = true;
+    const nums = [
+      ['val-cape', _meta.cape, 1],
+      ['val-cin',  _meta.cin,  1],
+      ['val-pwat', _meta.pwat, 1],
+      ['val-shr',  _meta.shr06,1],
+      ['val-srh',  _meta.srh,  0],
+    ];
+    nums.forEach(([id, val, d]) => {
+      if (val !== null && val !== undefined) animateCount($(id), val, d, 900);
+    });
+  } else {
+    setText('val-cape', fN(_meta.cape));
+    setText('val-cin',  fN(_meta.cin));
+    setText('val-pwat', fN(_meta.pwat));
+    setText('val-shr',  fN(_meta.shr06));
+    setText('val-srh',  fN(_meta.srh, 0));
+  }
   function setLevel(key, vId, sId) {
-    const p = _meta[key + '_p'], t = _meta[key + '_t'];
+    const p = _meta[key+'_p'], t = _meta[key+'_t'];
     if (p !== null && p !== undefined) {
       setText(vId, p + ' hPa');
       setText(sId, t + ' °C');
     } else {
-      setText(vId, '없음');
+      setText(vId, 'N/A');
       setText(sId, '');
     }
   }
-  setLevel('lcl', 'val-lcl', 'sub-lcl');
-  setLevel('lfc', 'val-lfc', 'sub-lfc');
-  setLevel('el',  'val-el',  'sub-el');
+  setLevel('lcl','val-lcl','sub-lcl');
+  setLevel('lfc','val-lfc','sub-lfc');
+  setLevel('el', 'val-el', 'sub-el');
 
-  /* 관측 레벨 테이블 */
   renderTable(_meta.levels || []);
 }
 
-/* ── 테이블 렌더링 (textContent 기반, XSS 안전) ─────────────────────────── */
+/* ── 테이블 렌더 ────────────────────────────────────────────────────────────── */
 function renderTable(levels) {
-  const tbody = document.getElementById('level-tbody');
+  const tbody = $('level-tbody');
   tbody.innerHTML = '';
-
   if (!levels.length) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 6;
-    td.className = 'na';
-    td.style.cssText = 'text-align:center;padding:1rem';
-    td.textContent = '레벨 데이터 없음';
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-    return;
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=6; td.className='na';
+    td.style.cssText='text-align:center;padding:1rem';
+    td.textContent='레벨 데이터 없음';
+    tr.appendChild(td); tbody.appendChild(tr); return;
   }
-
-  const fmt = (v, d = 1) => (v === null || v === undefined) ? null : Number(v).toFixed(d);
+  const fmt = (v,d=1) => (v===null||v===undefined) ? null : Number(v).toFixed(d);
   const COLS = [
     lv => fmt(lv.PA),
-    lv => lv.GH !== null && lv.GH !== undefined ? String(lv.GH) : null,
+    lv => (lv.GH!==null&&lv.GH!==undefined) ? String(lv.GH) : null,
     lv => fmt(lv.TA),
     lv => fmt(lv.TD),
-    lv => lv.WD !== null && lv.WD !== undefined ? String(lv.WD) : null,
+    lv => (lv.WD!==null&&lv.WD!==undefined) ? String(lv.WD) : null,
     lv => fmt(lv.WS),
   ];
-
   for (const lv of levels) {
     const tr = document.createElement('tr');
-    COLS.forEach((fn, i) => {
-      const td = document.createElement('td');
-      const val = fn(lv);
-      if (val === null) {
-        td.className = 'na';
-        td.textContent = '—';
-      } else {
-        td.textContent = val;
-      }
+    COLS.forEach(fn => {
+      const td=document.createElement('td');
+      const val=fn(lv);
+      if (val===null) { td.className='na'; td.textContent='—'; }
+      else td.textContent=val;
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   }
 }
 
-/* ── 테이블 다운로드 ──────────────────────────────────────────────────────── */
-const COL_HEADERS = ['기압(hPa)', '고도(m)', '기온(°C)', '이슬점(°C)', '풍향(°)', '풍속(m/s)'];
-const COL_KEYS    = ['PA', 'GH', 'TA', 'TD', 'WD', 'WS'];
+/* ── 테이블 다운로드 ────────────────────────────────────────────────────────── */
+const COL_HEADERS = ['기압(hPa)','고도(m)','기온(°C)','이슬점(°C)','풍향(°)','풍속(m/s)'];
+const COL_KEYS    = ['PA','GH','TA','TD','WD','WS'];
+const COL_W_XLSX  = [12,10,10,12,10,12];
 
 function downloadTable(format) {
-  if (!_meta || !_meta.levels) {
-    showToast('⚠ 데이터가 아직 로드되지 않았습니다');
-    return;
-  }
-
+  if (!_meta||!_meta.levels) { showToast('⚠ 데이터가 아직 로드되지 않았습니다'); return; }
   const levels  = _meta.levels;
-  const dateStr = (_meta.generated || 'unknown').replace(/[:/\s]/g, '_');
+  const dateStr = (_meta.generated||'unknown').replace(/[:/\s]/g,'_');
   const fname   = `skewt_levels_${dateStr}`;
-
-  if (format === 'csv') {
-    _dlCSV(levels, fname + '.csv');
-  } else if (format === 'txt') {
-    _dlTXT(levels, fname + '.txt');
-  } else {
-    _dlXLSX(levels, fname + '.xlsx');
-  }
+  if (format==='csv')       _dlCSV(levels, fname+'.csv');
+  else if (format==='txt')  _dlTXT(levels, fname+'.txt');
+  else                      _dlXLSX(levels, fname+'.xlsx');
 }
 
 function _dlCSV(levels, filename) {
-  const rows  = [COL_HEADERS.join(',')];
-  for (const lv of levels) {
-    rows.push(COL_KEYS.map(k =>
-      (lv[k] === null || lv[k] === undefined) ? '' : String(lv[k])
-    ).join(','));
-  }
-  _triggerDownload(
-    new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }),
-    filename
-  );
+  const rows = [COL_HEADERS.join(',')];
+  for (const lv of levels)
+    rows.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':String(lv[k])).join(','));
+  _triggerDownload(new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}), filename);
   showToast('📄 CSV 다운로드 시작');
 }
 
 function _dlTXT(levels, filename) {
-  const COL_W = [10, 8, 8, 10, 8, 10];
-  const pad   = (s, w) => String(s ?? '—').padStart(w);
-  const line  = COL_HEADERS.map((h, i) => h.padStart(COL_W[i])).join('  ');
-  const sep   = '-'.repeat(line.length);
-
-  const rows = [
-    `Skew-T Log-P 단열선도 관측 레벨 데이터`,
-    `생성: ${_meta.generated || ''}`,
-    sep,
-    line,
-    sep,
+  const COL_W=[10,8,8,10,8,10];
+  const pad=(s,w)=>String(s??'—').padStart(w);
+  const line=COL_HEADERS.map((h,i)=>h.padStart(COL_W[i])).join('  ');
+  const sep='-'.repeat(line.length);
+  const rows=[
+    `Skew-T Log-P Observation Levels`,
+    `Generated: ${_meta.generated||''}`, sep, line, sep,
   ];
-  for (const lv of levels) {
-    rows.push(COL_KEYS.map((k, i) => pad(lv[k], COL_W[i])).join('  '));
-  }
+  for (const lv of levels) rows.push(COL_KEYS.map((k,i)=>pad(lv[k],COL_W[i])).join('  '));
   rows.push(sep);
-
-  _triggerDownload(
-    new Blob([rows.join('\r\n')], { type: 'text/plain;charset=utf-8' }),
-    filename
-  );
+  _triggerDownload(new Blob([rows.join('\r\n')],{type:'text/plain;charset=utf-8'}), filename);
   showToast('📄 TXT 다운로드 시작');
 }
 
 function _dlXLSX(levels, filename) {
-  if (typeof XLSX === 'undefined') {
-    showToast('⚠ SheetJS 라이브러리 로드 실패');
-    return;
-  }
-
-  const wsData = [COL_HEADERS];
-  for (const lv of levels) {
-    wsData.push(COL_KEYS.map(k =>
-      (lv[k] === null || lv[k] === undefined) ? '' : lv[k]
-    ));
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  /* 컬럼 너비 */
-  ws['!cols'] = COL_W_XLSX.map(w => ({ wch: w }));
-
-  /* 헤더 스타일 (xlsx 라이브러리 기본 스타일 지원 범위 내) */
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let c = range.s.c; c <= range.e.c; c++) {
-    const addr = XLSX.utils.encode_cell({ r: 0, c });
+  if (typeof XLSX==='undefined') { showToast('⚠ SheetJS 로드 실패'); return; }
+  const wsData=[COL_HEADERS];
+  for (const lv of levels) wsData.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':lv[k]));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=COL_W_XLSX.map(w=>({wch:w}));
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for (let c=range.s.c;c<=range.e.c;c++) {
+    const addr=XLSX.utils.encode_cell({r:0,c});
     if (!ws[addr]) continue;
-    ws[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: 'D9E1F2' } } };
+    ws[addr].s={font:{bold:true},fill:{fgColor:{rgb:'1E1E1E'}}};
   }
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '관측 레벨');
-
-  /* 메타 시트 */
-  const metaRows = [
-    ['항목', '값'],
-    ['생성 시각', _meta.generated || ''],
-    ['CAPE (J/kg)', _meta.cape ?? ''],
-    ['CIN (J/kg)',  _meta.cin  ?? ''],
-    ['LCL 기압 (hPa)', _meta.lcl_p ?? ''],
-    ['LCL 기온 (°C)',  _meta.lcl_t ?? ''],
-    ['LFC 기압 (hPa)', _meta.lfc_p ?? ''],
-    ['LFC 기온 (°C)',  _meta.lfc_t ?? ''],
-    ['EL 기압 (hPa)',  _meta.el_p  ?? ''],
-    ['EL 기온 (°C)',   _meta.el_t  ?? ''],
-    ['PWAT (mm)',      _meta.pwat  ?? ''],
-    ['SHR06 (m/s)',    _meta.shr06 ?? ''],
-    ['SRH (m²/s²)',    _meta.srh   ?? ''],
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'관측 레벨');
+  const metaRows=[
+    ['항목','값'],
+    ['생성 시각',_meta.generated||''],
+    ['CAPE (J/kg)',_meta.cape??''],['CIN (J/kg)',_meta.cin??''],
+    ['LCL 기압 (hPa)',_meta.lcl_p??''],['LCL 기온 (°C)',_meta.lcl_t??''],
+    ['LFC 기압 (hPa)',_meta.lfc_p??''],['LFC 기온 (°C)',_meta.lfc_t??''],
+    ['EL 기압 (hPa)',_meta.el_p??''], ['EL 기온 (°C)',_meta.el_t??''],
+    ['PWAT (mm)',_meta.pwat??''],['SHR06 (m/s)',_meta.shr06??''],['SRH (m²/s²)',_meta.srh??''],
   ];
-  const wsMeta = XLSX.utils.aoa_to_sheet(metaRows);
-  wsMeta['!cols'] = [{ wch: 18 }, { wch: 20 }];
-  XLSX.utils.book_append_sheet(wb, wsMeta, '파라미터');
-
+  const wsMeta=XLSX.utils.aoa_to_sheet(metaRows);
+  wsMeta['!cols']=[{wch:18},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,wsMeta,'파라미터');
   XLSX.writeFile(wb, filename);
   showToast('📊 XLSX 다운로드 시작');
 }
 
-const COL_W_XLSX = [12, 10, 10, 12, 10, 12];
-
 function _triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a   = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
 }
 
-/* ── 그래프 이미지 로드 ───────────────────────────────────────────────────── */
+/* ── 그래프 이미지 로드 ─────────────────────────────────────────────────────── */
 function loadImage() {
-  const img  = document.getElementById('plot-img');
-  const phld = document.getElementById('plot-placeholder');
-  const src  = (_imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png')
-               + `?t=${Date.now()}`;
-
-  /* 이전 핸들러 제거 */
-  img.onload  = null;
-  img.onerror = null;
-  img.style.opacity = '0';
-
-  img.onload = () => {
-    phld.style.display = 'none';
-    img.style.display  = 'block';
-    img.style.opacity  = '1';
+  const img  = $('plot-img');
+  const phld = $('plot-placeholder');
+  const src  = (_imgTheme==='dark'?'skewt_dark.png':'skewt_light.png')+`?t=${Date.now()}`;
+  img.onload=null; img.onerror=null;
+  img.style.opacity='0';
+  img.onload=()=>{
+    phld.style.display='none';
+    img.style.display='block';
+    img.style.opacity='1';
   };
-  img.onerror = () => {
-    /* 다크 실패 시 라이트로, 라이트 실패 시 최종 오류 표시 */
-    if (_imgTheme === 'dark') {
-      img.src = `skewt_light.png?t=${Date.now()}`;
-    } else if (!img.src.includes('skewt_latest')) {
-      img.src = `skewt_latest.png?t=${Date.now()}`;
-    } else {
+  img.onerror=()=>{
+    if (_imgTheme==='dark') img.src=`skewt_light.png?t=${Date.now()}`;
+    else if (!img.src.includes('skewt_latest')) img.src=`skewt_latest.png?t=${Date.now()}`;
+    else {
       phld.classList.remove('loading');
-      phld.innerHTML = '<span>⚠ 그래프 이미지를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
+      phld.innerHTML='<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
     }
   };
-  img.src = src;
+  img.src=src;
 }
 
-/* ── 초기 실행 & 자동 갱신 (5분) ─────────────────────────────────────────── */
+/* ── 파라미터 카드 shimmer + 3D tilt ─────────────────────────────────────── */
+document.querySelectorAll('.param-card').forEach(card => {
+  const shimmer = document.createElement('div');
+  shimmer.className = 'shimmer';
+  card.prepend(shimmer);
+  card.addEventListener('mousemove', e => {
+    const r  = card.getBoundingClientRect();
+    const x  = e.clientX - r.left;
+    const y  = e.clientY - r.top;
+    const dx = (x / r.width  - .5) * 2;
+    const dy = (y / r.height - .5) * 2;
+    card.style.setProperty('--mx', (x / r.width  * 100).toFixed(1) + '%');
+    card.style.setProperty('--my', (y / r.height * 100).toFixed(1) + '%');
+    card.style.transform =
+      `perspective(600px) rotateX(${(-dy*6).toFixed(2)}deg) rotateY(${(dx*6).toFixed(2)}deg) translateY(-3px)`;
+  });
+  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+});
+
+/* ── 버튼 ripple ─────────────────────────────────────────────────────────── */
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    const r    = btn.getBoundingClientRect();
+    const size = Math.max(r.width, r.height) * 2;
+    const el   = document.createElement('span');
+    el.className = 'ripple';
+    el.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-r.left-size/2}px;top:${e.clientY-r.top-size/2}px`;
+    btn.appendChild(el);
+    setTimeout(() => el.remove(), 600);
+  });
+});
+
+/* ── 스크롤 reveal ───────────────────────────────────────────────────────── */
+document.querySelectorAll('.plot-card, .table-section, .params-grid, .status-bar')
+  .forEach(el => el.classList.add('reveal'));
+const _io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); _io.unobserve(e.target); }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => _io.observe(el));
+
+/* ── 초기 실행 ──────────────────────────────────────────────────────────────── */
 loadMeta();
 loadImage();
-setInterval(() => { loadMeta(); loadImage(); }, 5 * 60 * 1000);
+setInterval(()=>{loadMeta();loadImage();}, 5*60*1000);
 </script>
 </body>
 </html>
