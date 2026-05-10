@@ -321,11 +321,11 @@ def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
     skew.shade_cin (p, t, prof, facecolor=C["cin_fill"],  alpha=0.25)
 
     # 메인 곡선
-    skew.plot(p, t,    C["temp"],   lw=2.2, label="기온 (T)",       zorder=4)
+    skew.plot(p, t,    C["temp"],   lw=2.2, label="Temp (T)",       zorder=4)
     skew.plot(p, td,   C["dew"],    lw=2.2, linestyle="dashed",
-              label="이슬점 (Td)", zorder=4)
+              label="Dew (Td)", zorder=4)
     skew.plot(p, prof, C["parcel"], lw=1.6, linestyle=(0, (4, 3)),
-              label="기층 상승 곡선", zorder=4)
+              label="Parcel", zorder=4)
 
     # 관측 레벨 점 (skew.plot 으로 좌표 변환 자동 처리)
     skew.plot(p, t,  C["temp"], linestyle="none",
@@ -345,22 +345,22 @@ def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
                   markeredgecolor=C["text"], markeredgewidth=1.1,
                   zorder=7, label=label)
 
-    _mark(lcl, C["lcl_c"], "^", "LCL (들올림 응결 고도)")
-    _mark(lfc, C["lfc_c"], "s", "LFC (자유 대류 고도)")
-    _mark(el,  C["el_c"],  "D", "EL  (평형 고도)")
+    _mark(lcl, C["lcl_c"], "^", "LCL")
+    _mark(lfc, C["lfc_c"], "s", "LFC")
+    _mark(el,  C["el_c"],  "D", "EL")
 
     # 축
     ax.set_ylim(1050, 100)
     ax.set_xlim(-40, 45)
-    ax.set_xlabel("기온 (°C)",   color=C["subtext"], fontsize=11,
+    ax.set_xlabel("Temp (°C)",   color=C["subtext"], fontsize=11,
                   fontproperties=kfont(11))
-    ax.set_ylabel("기압 (hPa)", color=C["subtext"], fontsize=11,
+    ax.set_ylabel("Pressure (hPa)", color=C["subtext"], fontsize=11,
                   fontproperties=kfont(11))
     ax.tick_params(colors=C["subtext"])
 
     # 제목
     ax.set_title(
-        f"Skew-T Log-P 단열선도\n{date_str}",
+        f"Skew-T Log-P Diagram\n{date_str}",
         color=C["text"], fontsize=13, fontweight="bold", pad=12,
         fontproperties=kfont(13, bold=True),
     )
@@ -368,7 +368,7 @@ def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
     # 정보 박스
     def _fmt(pair):
         if pair is None:
-            return "없음"
+            return "N/A"
         return f"{pair[0].to('hPa').magnitude:.0f} hPa  /  {pair[1].to('degC').magnitude:.1f} \u00b0C"
 
     lines = [
@@ -522,7 +522,7 @@ def main():
             print(f"  {label}   = {v[0].to('hPa').magnitude:.0f} hPa"
                   f" / {v[1].to('degC').magnitude:.1f} °C")
         else:
-            print(f"  {label}   = 없음")
+            print(f"  {label}   = N/A")
     if params["pwat"] is not None:
         print(f"  PWAT  = {params['pwat'].to('mm').magnitude:.1f} mm")
     if params["shr06"] is not None:
