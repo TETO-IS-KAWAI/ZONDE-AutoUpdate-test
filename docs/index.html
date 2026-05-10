@@ -484,19 +484,72 @@ tbody td:first-child{
 /* ═══════════════════════════════════════════════════════
    ENTRANCE ANIMATION
 ═══════════════════════════════════════════════════════ */
+
+/* 기본 fadeUp (카드/섹션용) */
 @keyframes fadeUp{
-  from{opacity:0;transform:translateY(18px)}
-  to{opacity:1;transform:translateY(0)}
+  from{opacity:0;transform:translateY(24px);filter:blur(4px)}
+  to  {opacity:1;transform:translateY(0);   filter:blur(0)}
 }
 .anim{
   opacity:0;
-  animation:fadeUp .55s var(--ease) forwards;
+  animation:fadeUp .65s var(--ease) forwards;
 }
-.anim-1{animation-delay:.05s}
-.anim-2{animation-delay:.12s}
-.anim-3{animation-delay:.20s}
-.anim-4{animation-delay:.28s}
-.anim-5{animation-delay:.36s}
+.anim-1{animation-delay:.08s}
+.anim-2{animation-delay:.18s}
+.anim-3{animation-delay:.30s}
+.anim-4{animation-delay:.42s}
+.anim-5{animation-delay:.54s}
+
+/* 히어로 eyebrow — 좌측 슬라이드 인 */
+@keyframes slideInLeft{
+  from{opacity:0;transform:translateX(-22px);letter-spacing:.35em}
+  to  {opacity:1;transform:translateX(0);   letter-spacing:.2em}
+}
+.hero-eyebrow{
+  animation:slideInLeft .7s var(--ease) .05s both;
+}
+
+/* 히어로 타이틀 — 줄별로 마스크 안에서 올라오는 reveal */
+.hero-title-wrap{
+  overflow:hidden;
+}
+@keyframes titleReveal{
+  from{opacity:0;transform:translateY(105%) skewY(4deg);filter:blur(6px)}
+  to  {opacity:1;transform:translateY(0)     skewY(0deg);filter:blur(0)}
+}
+.hero-line{
+  display:block;
+  animation:titleReveal .75s var(--ease) both;
+}
+.hero-line:nth-child(1){animation-delay:.12s}
+.hero-line:nth-child(2){animation-delay:.22s}
+
+/* 히어로 서브텍스트 — 페이드 + 살짝 위로 */
+@keyframes fadeUpSub{
+  from{opacity:0;transform:translateY(10px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+.hero-sub{
+  animation:fadeUpSub .6s var(--ease) .42s both;
+}
+
+/* hero-controls */
+.hero-controls{
+  animation:fadeUpSub .5s var(--ease) .55s both;
+}
+
+/* 파라미터 카드 stagger */
+.param-card{
+  animation:fadeUp .55s var(--ease) both;
+}
+.param-card:nth-child(1){animation-delay:.30s}
+.param-card:nth-child(2){animation-delay:.36s}
+.param-card:nth-child(3){animation-delay:.42s}
+.param-card:nth-child(4){animation-delay:.48s}
+.param-card:nth-child(5){animation-delay:.54s}
+.param-card:nth-child(6){animation-delay:.60s}
+.param-card:nth-child(7){animation-delay:.66s}
+.param-card:nth-child(8){animation-delay:.72s}
 
 /* ═══════════════════════════════════════════════════════
    RESPONSIVE
@@ -596,20 +649,6 @@ tbody tr:hover::before{transform:scaleY(1)}
   box-shadow:0 0 20px var(--red-glow),0 0 40px rgba(251,54,64,.2);
 }
 
-/* 히어로 타이틀 글자 개별 애니메이션 */
-.hero-char{
-  display:inline-block;
-  transition:color .3s, transform .3s var(--ease);
-}
-.hero-title:hover .hero-char{
-  color:var(--red);
-}
-.hero-title:hover .hero-char:nth-child(odd){
-  transform:translateY(-3px);
-}
-.hero-title:hover .hero-char:nth-child(even){
-  transform:translateY(3px);
-}
 
 /* 플롯 카드 테두리 glow on hover */
 .plot-card{
@@ -661,6 +700,36 @@ tbody tr:hover::before{transform:scaleY(1)}
   transform:scale(1.04);
 }
 
+
+/* ── 언어 전환 토글 ─────────────────────────────────────────────────────────── */
+.lang-toggle{
+  display:flex;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:3px;
+  gap:2px;
+}
+.lang-btn{
+  padding:.28rem .65rem;
+  font-size:.72rem;
+  font-weight:700;
+  border-radius:5px;
+  color:var(--muted);
+  letter-spacing:.08em;
+  transition:background .2s var(--ease), color .2s;
+}
+.lang-btn.active{
+  background:var(--bg);
+  color:var(--text);
+  border:1px solid var(--border2);
+}
+
+/* 언어 전환 페이드 */
+[data-ko],[data-en]{
+  transition:opacity .25s;
+}
+
 </style>
 </head>
 <body>
@@ -670,10 +739,17 @@ tbody tr:hover::before{transform:scaleY(1)}
 
   <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
   <header class="hero anim anim-1">
-    <div class="hero-eyebrow">기상청 API 허브 · 자동 관측</div>
-    <h1 class="hero-title">SKEW<span>-</span>T<br>LOG<span>-</span>P</h1>
-    <p class="hero-sub">라디오존데 단열선도 · 매일 자동 갱신</p>
+    <div class="hero-eyebrow"><span data-ko="기상청 API 허브 · 자동 관측" data-en="KMA API Hub · Auto Observation">기상청 API 허브 · 자동 관측</span></div>
+    <h1 class="hero-title">
+      <div class="hero-title-wrap"><span class="hero-line">SKEW<span style="color:var(--red)">-</span>T</span></div>
+      <div class="hero-title-wrap"><span class="hero-line">LOG<span style="color:var(--red)">-</span>P</span></div>
+    </h1>
+    <p class="hero-sub"><span data-ko="라디오존데 단열선도 · 매일 자동 갱신" data-en="Radiosonde Skew-T Diagram · Daily Auto Update">라디오존데 단열선도 · 매일 자동 갱신</span></p>
     <div class="hero-controls">
+      <div class="lang-toggle" id="lang-toggle">
+        <button class="lang-btn active" data-lang="ko">KO</button>
+        <button class="lang-btn"        data-lang="en">EN</button>
+      </div>
       <button class="icon-btn" id="theme-toggle" title="테마 전환" aria-label="테마 전환">☀️</button>
     </div>
   </header>
@@ -681,7 +757,7 @@ tbody tr:hover::before{transform:scaleY(1)}
   <!-- ── STATUS BAR ────────────────────────────────────────────────────────── -->
   <div class="status-bar anim anim-2">
     <span class="status-dot"></span>
-    <span>자동 갱신 활성</span>
+    <span data-ko="자동 갱신 활성" data-en="Auto Update Active">자동 갱신 활성</span>
     <span class="status-date" id="badge-date">—</span>
     <span class="status-time" id="update-time"></span>
   </div>
@@ -689,7 +765,7 @@ tbody tr:hover::before{transform:scaleY(1)}
   <!-- ── PLOT ──────────────────────────────────────────────────────────────── -->
   <div class="plot-card anim anim-3">
     <div class="plot-toolbar">
-      <span class="sec-label">Sounding Diagram</span>
+      <span class="sec-label"><span data-ko="단열선도" data-en="Sounding Diagram">Sounding Diagram</span></span>
       <div class="img-toggle">
         <button id="img-dark-btn"  class="active" onclick="switchImgTheme('dark')">DARK</button>
         <button id="img-light-btn"           onclick="switchImgTheme('light')">LIGHT</button>
@@ -707,61 +783,61 @@ tbody tr:hover::before{transform:scaleY(1)}
   </div>
 
   <!-- ── PARAMS ────────────────────────────────────────────────────────────── -->
-  <p class="sec-label anim anim-3">Sounding Parameters</p>
+  <p class="sec-label anim anim-3"><span data-ko="관측 파라미터" data-en="Sounding Parameters">Sounding Parameters</span></p>
   <div class="params-grid anim anim-4">
 
     <div class="param-card red">
       <div class="param-label">CAPE</div>
-      <div class="param-name">대류 유효 위치 에너지</div>
+      <div class="param-name" data-ko="대류 유효 위치 에너지" data-en="Convective Available PE">대류 유효 위치 에너지</div>
       <div class="param-value" id="val-cape">—</div>
       <div class="param-sub">J/kg</div>
     </div>
 
     <div class="param-card blue">
       <div class="param-label">CIN</div>
-      <div class="param-name">대류 억제 에너지</div>
+      <div class="param-name" data-ko="대류 억제 에너지" data-en="Convective Inhibition">대류 억제 에너지</div>
       <div class="param-value" id="val-cin">—</div>
       <div class="param-sub">J/kg</div>
     </div>
 
     <div class="param-card amber">
       <div class="param-label">LCL</div>
-      <div class="param-name">들올림 응결 고도</div>
+      <div class="param-name" data-ko="들올림 응결 고도" data-en="Lifting Condensation Level">들올림 응결 고도</div>
       <div class="param-value" id="val-lcl" style="font-size:1.25rem;line-height:1.3">—</div>
       <div class="param-sub" id="sub-lcl"></div>
     </div>
 
     <div class="param-card teal">
       <div class="param-label">LFC</div>
-      <div class="param-name">자유 대류 고도</div>
+      <div class="param-name" data-ko="자유 대류 고도" data-en="Level of Free Convection">자유 대류 고도</div>
       <div class="param-value" id="val-lfc" style="font-size:1.25rem;line-height:1.3">—</div>
       <div class="param-sub" id="sub-lfc"></div>
     </div>
 
     <div class="param-card sky">
       <div class="param-label">EL</div>
-      <div class="param-name">평형 고도</div>
+      <div class="param-name" data-ko="평형 고도" data-en="Equilibrium Level">평형 고도</div>
       <div class="param-value" id="val-el" style="font-size:1.25rem;line-height:1.3">—</div>
       <div class="param-sub" id="sub-el"></div>
     </div>
 
     <div class="param-card" style="--accent-line:#B39DDB">
       <div class="param-label">PWAT</div>
-      <div class="param-name">가강수량</div>
+      <div class="param-name" data-ko="가강수량" data-en="Precipitable Water">가강수량</div>
       <div class="param-value" id="val-pwat" style="color:#B39DDB">—</div>
       <div class="param-sub">mm</div>
     </div>
 
     <div class="param-card" style="--accent-line:#80CBC4">
       <div class="param-label">SHR06</div>
-      <div class="param-name">0–6 km 벌크 윈드시어</div>
+      <div class="param-name" data-ko="0–6 km 벌크 윈드시어" data-en="0–6 km Bulk Wind Shear">0–6 km 벌크 윈드시어</div>
       <div class="param-value" id="val-shr" style="color:#80CBC4">—</div>
       <div class="param-sub">m/s</div>
     </div>
 
     <div class="param-card" style="--accent-line:#FFCC80">
       <div class="param-label">SRH</div>
-      <div class="param-name">0–3 km 폭풍 상대 헬리시티</div>
+      <div class="param-name" data-ko="0–3 km 폭풍 상대 헬리시티" data-en="0–3 km Storm Relative Helicity">0–3 km 폭풍 상대 헬리시티</div>
       <div class="param-value" id="val-srh" style="color:#FFCC80;font-size:1.3rem">—</div>
       <div class="param-sub">m²/s²</div>
     </div>
@@ -771,7 +847,7 @@ tbody tr:hover::before{transform:scaleY(1)}
   <!-- ── TABLE ─────────────────────────────────────────────────────────────── -->
   <div class="table-section anim anim-5">
     <div class="table-head">
-      <span class="sec-label">Observation Levels</span>
+      <span class="sec-label"><span data-ko="관측 레벨" data-en="Observation Levels">Observation Levels</span></span>
       <button class="btn btn-ghost" onclick="downloadTable('xlsx')">⬇ XLSX</button>
       <button class="btn btn-ghost" onclick="downloadTable('csv')">⬇ CSV</button>
       <button class="btn btn-ghost" onclick="downloadTable('txt')">⬇ TXT</button>
@@ -780,12 +856,12 @@ tbody tr:hover::before{transform:scaleY(1)}
       <table>
         <thead>
           <tr>
-            <th>Pressure<br><span style="font-weight:400;text-transform:none">(hPa)</span></th>
-            <th>Height<br><span style="font-weight:400;text-transform:none">(m)</span></th>
-            <th>Temp<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
-            <th>Dew Point<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
-            <th>Wind Dir<br><span style="font-weight:400;text-transform:none">(°)</span></th>
-            <th>Wind Spd<br><span style="font-weight:400;text-transform:none">(m/s)</span></th>
+            <th data-ko="기압 (hPa)" data-en="Pressure (hPa)">기압<br><span style="font-weight:400;text-transform:none">(hPa)</span></th>
+            <th data-ko="고도 (m)" data-en="Height (m)">고도<br><span style="font-weight:400;text-transform:none">(m)</span></th>
+            <th data-ko="기온 (°C)" data-en="Temp (°C)">기온<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
+            <th data-ko="이슬점 (°C)" data-en="Dew Point (°C)">이슬점<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
+            <th data-ko="풍향 (°)" data-en="Wind Dir (°)">풍향<br><span style="font-weight:400;text-transform:none">(°)</span></th>
+            <th data-ko="풍속 (m/s)" data-en="Wind Spd (m/s)">풍속<br><span style="font-weight:400;text-transform:none">(m/s)</span></th>
           </tr>
         </thead>
         <tbody id="level-tbody">
@@ -801,11 +877,11 @@ tbody tr:hover::before{transform:scaleY(1)}
   <footer class="footer">
     <div class="footer-logo">ZONDE</div>
     <p>
-      데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank" rel="noopener">기상청 API 허브</a>
+      <span data-ko="데이터 출처" data-en="Data Source">데이터 출처</span>: <a href="https://apihub.kma.go.kr" target="_blank" rel="noopener">기상청 API 허브</a>
       &nbsp;·&nbsp;
       <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank" rel="noopener">GitHub</a>
     </p>
-    <p style="margin-top:.4rem">© 2025 TETO-IS-KAWAI · MIT License</p>
+    <p style="margin-top:.4rem"><span data-ko="© 2025 TETO-IS-KAWAI · MIT 라이선스" data-en="© 2025 TETO-IS-KAWAI · MIT License">© 2025 TETO-IS-KAWAI · MIT License</span></p>
   </footer>
 
 </div><!-- /wrap -->
@@ -897,14 +973,14 @@ async function loadMeta() {
     console.warn('meta.json 로드 실패:', e);
     const ph = $('plot-placeholder');
     ph.classList.remove('loading');
-    ph.innerHTML = '<span>⚠ 데이터를 불러올 수 없습니다.<br>Actions가 아직 실행되지 않았을 수 있습니다.</span>';
+    ph.innerHTML = `<span>${window._T ? window._T.loading_data : '⚠ 데이터를 불러올 수 없습니다.'}</span>`;
     return;
   }
 
   /* 날짜 배지 */
   const bd = $('badge-date');
   bd.textContent = _meta.generated || '날짜 없음';
-  setText('update-time', `갱신: ${_meta.generated || '—'}`);
+  setText('update-time', `${window._T ? window._T.updated : '갱신'}: ${_meta.generated || '—'}`);
 
   /* 수치 포맷 */
   const fN = (v, d=1) => (v===null||v===undefined) ? '—' : Number(v).toFixed(d);
@@ -975,12 +1051,12 @@ function renderTable(levels) {
 }
 
 /* ── 테이블 다운로드 ────────────────────────────────────────────────────────── */
-const COL_HEADERS = ['기압(hPa)','고도(m)','기온(°C)','이슬점(°C)','풍향(°)','풍속(m/s)'];
+const COL_HEADERS = () => window._T ? window._T.col_headers : ['기압(hPa)','고도(m)','기온(°C)','이슬점(°C)','풍향(°)','풍속(m/s)'];
 const COL_KEYS    = ['PA','GH','TA','TD','WD','WS'];
 const COL_W_XLSX  = [12,10,10,12,10,12];
 
 function downloadTable(format) {
-  if (!_meta||!_meta.levels) { showToast('⚠ 데이터가 아직 로드되지 않았습니다'); return; }
+  if (!_meta||!_meta.levels) { showToast(window._T.toast_nodata); return; }
   const levels  = _meta.levels;
   const dateStr = (_meta.generated||'unknown').replace(/[:/\s]/g,'_');
   const fname   = `skewt_levels_${dateStr}`;
@@ -990,11 +1066,11 @@ function downloadTable(format) {
 }
 
 function _dlCSV(levels, filename) {
-  const rows = [COL_HEADERS.join(',')];
+  const rows = [COL_HEADERS().join(',')];
   for (const lv of levels)
     rows.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':String(lv[k])).join(','));
   _triggerDownload(new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}), filename);
-  showToast('📄 CSV 다운로드 시작');
+  showToast(window._T.toast_csv);
 }
 
 function _dlTXT(levels, filename) {
@@ -1009,12 +1085,12 @@ function _dlTXT(levels, filename) {
   for (const lv of levels) rows.push(COL_KEYS.map((k,i)=>pad(lv[k],COL_W[i])).join('  '));
   rows.push(sep);
   _triggerDownload(new Blob([rows.join('\r\n')],{type:'text/plain;charset=utf-8'}), filename);
-  showToast('📄 TXT 다운로드 시작');
+  showToast(window._T.toast_txt);
 }
 
 function _dlXLSX(levels, filename) {
   if (typeof XLSX==='undefined') { showToast('⚠ SheetJS 로드 실패'); return; }
-  const wsData=[COL_HEADERS];
+  const wsData=[COL_HEADERS()];
   for (const lv of levels) wsData.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':lv[k]));
   const ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=COL_W_XLSX.map(w=>({wch:w}));
@@ -1039,7 +1115,7 @@ function _dlXLSX(levels, filename) {
   wsMeta['!cols']=[{wch:18},{wch:20}];
   XLSX.utils.book_append_sheet(wb,wsMeta,'파라미터');
   XLSX.writeFile(wb, filename);
-  showToast('📊 XLSX 다운로드 시작');
+  showToast(window._T.toast_xlsx);
 }
 
 function _triggerDownload(blob, filename) {
@@ -1082,12 +1158,99 @@ function loadImage() {
       img.src = fallback;
     } else {
       phld.classList.remove('loading');
-      phld.innerHTML = '<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
+      phld.innerHTML = `<span>${window._T ? window._T.loading_img : '⚠ 그래프를 불러올 수 없습니다.'}</span>`;
     }
   };
 
   img.src = fname;
 }
+
+
+/* ── 언어 전환 ──────────────────────────────────────────────────────────────── */
+let _lang = 'ko';
+
+function applyLang(lang) {
+  _lang = lang;
+
+  // 버튼 활성 상태
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+
+  // data-ko / data-en 속성이 있는 모든 요소 교체
+  document.querySelectorAll('[data-ko][data-en]').forEach(el => {
+    // th 처럼 자식 노드가 있는 경우 첫 텍스트 노드만 교체
+    const target = el.dataset[lang];
+    if (!target) return;
+
+    if (el.tagName === 'TH') {
+      // TH: 첫 번째 텍스트 노드만 교체
+      const textNode = [...el.childNodes].find(n => n.nodeType === 3);
+      if (textNode) textNode.textContent = target.replace(/ \(.*\)$/, ''); // 단위 제거
+    } else {
+      el.textContent = target;
+    }
+  });
+
+  // 동적으로 생성되는 텍스트
+  const T = {
+    ko: {
+      loading_img : '⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.',
+      loading_data: '⚠ 데이터를 불러올 수 없습니다.<br>Actions가 아직 실행되지 않았을 수 있습니다.',
+      loading_table: '데이터 불러오는 중…',
+      no_level    : '레벨 데이터 없음',
+      toast_csv   : '📄 CSV 다운로드 시작',
+      toast_txt   : '📄 TXT 다운로드 시작',
+      toast_xlsx  : '📊 XLSX 다운로드 시작',
+      toast_nodata: '⚠ 데이터가 아직 로드되지 않았습니다',
+      col_headers : ['기압(hPa)','고도(m)','기온(°C)','이슬점(°C)','풍향(°)','풍속(m/s)'],
+      updated     : '갱신',
+      theme_dark  : '다크 모드로 전환',
+      theme_light : '라이트 모드로 전환',
+      theme_title : '테마 전환',
+    },
+    en: {
+      loading_img : '⚠ Unable to load diagram.<br>Please run Actions first.',
+      loading_data: '⚠ Unable to load data.<br>Actions may not have run yet.',
+      loading_table: 'Loading data…',
+      no_level    : 'No level data',
+      toast_csv   : '📄 Downloading CSV',
+      toast_txt   : '📄 Downloading TXT',
+      toast_xlsx  : '📊 Downloading XLSX',
+      toast_nodata: '⚠ Data not loaded yet',
+      col_headers : ['Pressure(hPa)','Height(m)','Temp(°C)','Dew Pt(°C)','Wind Dir(°)','Wind Spd(m/s)'],
+      updated     : 'Updated',
+      theme_dark  : 'Switch to Dark Mode',
+      theme_light : 'Switch to Light Mode',
+      theme_title : 'Toggle Theme',
+    },
+  };
+  window._T = T[lang];
+
+  // 업데이트 시간 레이블
+  if (_meta) {
+    setText('update-time', `${window._T.updated}: ${_meta.generated || '—'}`);
+  }
+
+  // 테마 버튼 title
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeBtn.title = isDark ? window._T.theme_dark : window._T.theme_light;
+
+  try { localStorage.setItem('zonde_lang', lang); } catch(_) {}
+}
+
+// 언어 토글 버튼 이벤트
+document.getElementById('lang-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.lang-btn');
+  if (btn && btn.dataset.lang !== _lang) applyLang(btn.dataset.lang);
+});
+
+// 초기 언어 설정
+(function initLang() {
+  let saved;
+  try { saved = localStorage.getItem('zonde_lang'); } catch(_) {}
+  applyLang(saved || 'ko');
+})();
 
 /* ── 파라미터 카드 shimmer + 3D tilt ─────────────────────────────────────── */
 document.querySelectorAll('.param-card').forEach(card => {
