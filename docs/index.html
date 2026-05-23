@@ -363,7 +363,7 @@ thead th{
   border-bottom:1px solid var(--border2);
   white-space:nowrap;
 }
-thead th:first-child{text-align:left;padding-left:1.1rem}
+thead th:first-child { text-align: right; }
 tbody tr{border-bottom:1px solid var(--border)}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg3)}
@@ -374,11 +374,10 @@ tbody td{
   white-space:nowrap;
   transition:background .15s;
 }
-tbody td:first-child{
-  text-align:left;
-  padding-left:1.1rem;
-  font-weight:600;
-  color:var(--red);
+tbody td:first-child {
+  text-align: right;
+  font-weight: 600;
+  color: var(--red);
 }
 .na{color:var(--muted);font-style:italic}
 
