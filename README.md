@@ -46,9 +46,9 @@ Actions 탭 **Run workflow**
 ---
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도 — 2026년 08월 23일 10:01 KST
+### 최신 단열선도 — 2026년 08월 24일 09:58 KST
 
-![CAPE](https://img.shields.io/badge/CAPE--82%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN--198%20J%2Fkg-blue)
+![CAPE](https://img.shields.io/badge/CAPE-1377%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN--19%20J%2Fkg-blue)
 
 | 다크 테마 | 라이트 테마 |
 |-----------|-------------|
