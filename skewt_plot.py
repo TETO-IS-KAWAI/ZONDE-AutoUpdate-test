@@ -1,15 +1,8 @@
 """
-기상청 API 허브 - Skew-T Log-P 단열선도 자동 생성
-GitHub Actions에서 매일 실행 → docs/ 에 PNG(다크/라이트) + JSON 저장 → README 갱신
+기상청 API 허브 라디오존데 자료로 Skew-T Log-P 단열선도를 만든다.
 
-변경 이력:
-  v3.0 - 코드 전면 정리 (draw/save_meta/main 연결 버그 수정)
-       - 다크/라이트 PNG 파일명 수정 (skewt_dark.png / skewt_light.png)
-       - 마커 좌표 변환 수정 (skew.plot 방식 통일)
-       - 팔레트 딕셔너리 실제 적용
-       - 한글 폰트 경로 탐지 유지
-       - save_meta / update_readme 분리
-       - 보안: URL 도메인 화이트리스트, 로그 마스킹
+GitHub Actions에서 매일 실행되며 docs/ 에 PNG(다크/라이트)와 meta.json을 저장하고
+README의 자동 갱신 구간을 바꾼다.
 """
 
 import codecs, json, os, re, shutil, sys, urllib.parse, warnings
@@ -31,9 +24,7 @@ from metpy.plots import SkewT
 from metpy.units import units
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 0. 보안 유틸
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def _validate_api_url(url: str) -> str:
     if not url:
@@ -41,15 +32,15 @@ def _validate_api_url(url: str) -> str:
     try:
         parsed = urllib.parse.urlparse(url)
     except Exception:
-        print("[✗] KMA_API_URL 파싱 실패"); sys.exit(1)
+        print("[error] KMA_API_URL 파싱 실패"); sys.exit(1)
 
     if parsed.scheme != "https":
-        print(f"[✗] 허용되지 않는 URL 스킴: {parsed.scheme!r}"); sys.exit(1)
+        print(f"[error] 허용되지 않는 URL 스킴: {parsed.scheme!r}"); sys.exit(1)
 
     _ALLOWED = ("apihub.kma.go.kr", "data.kma.go.kr", "apis.data.go.kr")
     host = parsed.hostname or ""
     if not any(host == h or host.endswith("." + h) for h in _ALLOWED):
-        print(f"[✗] 허용되지 않는 호스트: {host!r}"); sys.exit(1)
+        print(f"[error] 허용되지 않는 호스트: {host!r}"); sys.exit(1)
     return url
 
 
@@ -61,9 +52,7 @@ def _mask_url(url: str) -> str:
         return "***"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 1. 설정
-# ═══════════════════════════════════════════════════════════════════════════════
 
 API_URL = _validate_api_url(os.environ.get("KMA_API_URL", "").strip())
 
@@ -81,8 +70,8 @@ NOW       = datetime.now(KST)
 DATE_STR  = NOW.strftime("%Y년 %m월 %d일 %H:%M KST")
 FILE_DATE = NOW.strftime("%Y%m%d")
 
-# ── 한글 폰트 ─────────────────────────────────────────────────────────────────
-# Noto Sans CJK: SIL OFL 1.1 (상업적 사용 포함 무료)
+# 한글 폰트
+# Noto Sans CJK (SIL OFL 1.1)
 _FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc",
@@ -96,17 +85,17 @@ _FONT_CANDIDATES = [
 _FONT_PATH = next((p for p in _FONT_CANDIDATES if Path(p).exists()), None)
 
 if _FONT_PATH:
-    # addfont() 로 직접 등록 → font cache 갱신 없이 즉시 인식 (Actions 환경 안정)
+    # addfont()로 바로 등록해야 Actions에서 폰트 캐시 갱신 없이 잡힌다
     fm.fontManager.addfont(_FONT_PATH)
     _KO_FP = fm.FontProperties(fname=_FONT_PATH)
     _font_name = _KO_FP.get_name()
     matplotlib.rcParams["font.family"] = _font_name
     matplotlib.rcParams["axes.unicode_minus"] = False
-    print(f"[✓] 한글 폰트: {_FONT_PATH}  ({_font_name})")
+    print(f"[ok] 한글 폰트: {_FONT_PATH}  ({_font_name})")
 else:
     _KO_FP = None
     matplotlib.rcParams["axes.unicode_minus"] = False
-    print("[!] 한글 폰트 없음 — 기본 폰트 사용 (한글 깨짐 가능)")
+    print("[warn] 한글 폰트 없음, 기본 폰트 사용 (한글이 깨질 수 있음)")
 
 
 def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
@@ -120,7 +109,7 @@ def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
     return fp
 
 
-# ── 테마 팔레트 ───────────────────────────────────────────────────────────────
+# 테마 팔레트
 _DARK: dict = dict(
     bg        = "#0d1117",
     surface   = "#161b22",
@@ -164,29 +153,27 @@ _LIGHT: dict = dict(
 )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 2. 데이터 수집
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def download_raw(url: str, path: Path) -> None:
-    print(f"[→] 다운로드: {_mask_url(url)}")
+    print(f"[get] 다운로드: {_mask_url(url)}")
     session = requests.Session()
     session.max_redirects = 5
     try:
         resp = session.get(url, timeout=30, allow_redirects=True)
         resp.raise_for_status()
     except requests.exceptions.Timeout:
-        print("[✗] 타임아웃"); sys.exit(1)
+        print("[error] 타임아웃"); sys.exit(1)
     except requests.exceptions.SSLError as e:
-        print(f"[✗] SSL 오류: {e}"); sys.exit(1)
+        print(f"[error] SSL 오류: {e}"); sys.exit(1)
     except requests.exceptions.HTTPError as e:
-        print(f"[✗] HTTP 오류: {e}"); sys.exit(1)
+        print(f"[error] HTTP 오류: {e}"); sys.exit(1)
 
     if "html" in resp.headers.get("Content-Type", "").lower():
-        print("[✗] HTML 응답 — API URL/키 확인 필요"); sys.exit(1)
+        print("[error] HTML 응답을 받음. API URL과 키를 확인할 것"); sys.exit(1)
 
     path.write_bytes(resp.content)
-    print(f"[✓] 다운로드 완료: {len(resp.content):,} bytes")
+    print(f"[ok] 다운로드 완료: {len(resp.content):,} bytes")
 
 
 def recode(path: Path, src: str = "euc-kr", dst: str = "utf-8") -> None:
@@ -194,12 +181,10 @@ def recode(path: Path, src: str = "euc-kr", dst: str = "utf-8") -> None:
         text = f.read()
     with codecs.open(path, "w", dst) as f:
         f.write(text)
-    print(f"[✓] 인코딩 변환: {src} → {dst}")
+    print(f"[ok] 인코딩 변환: {src} -> {dst}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 3. 데이터 파싱
-# ═══════════════════════════════════════════════════════════════════════════════
 
 _COLS = ["YYMMDDHHMI", "STN", "PA", "GH", "TA", "TD", "WD", "WS", "FLAG"]
 
@@ -216,25 +201,23 @@ def load_data(path: Path) -> pd.DataFrame:
           .sort_values("PA", ascending=False)
           .reset_index(drop=True)
     )
-    print(f"[✓] 데이터 로드: {len(df)}개 레벨  "
+    print(f"[ok] 데이터 로드: {len(df)}개 레벨  "
           f"({df['PA'].max():.0f} ~ {df['PA'].min():.0f} hPa)")
     return df
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 4. 기상 파라미터 계산
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def _safe(fn, *args, **kw):
     try:
         result = fn(*args, **kw)
         if isinstance(result, tuple) and len(result) == 2:
             if np.isnan(result[0].magnitude) or np.isnan(result[1].magnitude):
-                print(f"    [!] {fn.__name__}: nan → None")
+                print(f"    [warn] {fn.__name__}: nan, None 처리")
                 return None
         return result
     except Exception as e:
-        print(f"    [!] {fn.__name__} 실패: {e}")
+        print(f"    [warn] {fn.__name__} 실패: {e}")
         return None
 
 
@@ -273,7 +256,7 @@ def compute(df: pd.DataFrame) -> dict:
             if srh_res is not None:
                 srh = float(srh_res[2].magnitude)
         except Exception as e:
-            print(f"    [!] 윈드 파라미터 계산 실패: {e}")
+            print(f"    [warn] 윈드 파라미터 계산 실패: {e}")
 
     return dict(
         p=p, t=t, td=td, gh=gh, wd=wd, ws=ws,
@@ -283,9 +266,7 @@ def compute(df: pd.DataFrame) -> dict:
     )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 5. 그래프 생성
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
     """단일 테마 Skew-T Log-P PNG 생성"""
@@ -409,19 +390,17 @@ def _draw_one(params: dict, date_str: str, C: dict, save_path: Path) -> None:
     plt.savefig(save_path, dpi=150, bbox_inches="tight",
                 facecolor=fig.get_facecolor())
     plt.close(fig)
-    print(f"[✓] 저장: {save_path}")
+    print(f"[ok] 저장: {save_path}")
 
 
 def draw_both(params: dict, date_str: str) -> None:
     _draw_one(params, date_str, _DARK,  PLOT_DARK_PATH)
     _draw_one(params, date_str, _LIGHT, PLOT_LIGHT_PATH)
     shutil.copy2(PLOT_DARK_PATH, PLOT_LATEST)
-    print(f"[✓] 하위 호환 복사: {PLOT_LATEST}")
+    print(f"[ok] 하위 호환 복사: {PLOT_LATEST}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 6. 메타데이터 JSON
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def save_meta(df: pd.DataFrame, params: dict) -> None:
     def _pv(pair, i):
@@ -454,12 +433,10 @@ def save_meta(df: pd.DataFrame, params: dict) -> None:
     }
     META_PATH.write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[✓] 메타데이터 저장: {META_PATH}  ({len(table)}개 레벨)")
+    print(f"[ok] 메타데이터 저장: {META_PATH}  ({len(table)}개 레벨)")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 7. README 갱신
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def update_readme(params: dict) -> None:
     cape = params["cape"].magnitude
@@ -472,10 +449,10 @@ def update_readme(params: dict) -> None:
     badges = badge("CAPE", cape, "orange") + "  " + badge("CIN", cin, "blue")
     block  = (
         "<!-- SKEWT_AUTO_START -->\n"
-        f"### 최신 단열선도 — {DATE_STR}\n\n"
+        f"### 최신 단열선도 ({DATE_STR})\n\n"
         f"{badges}\n\n"
-        "| 다크 테마 | 라이트 테마 |\n"
-        "|-----------|-------------|\n"
+        "| 다크 | 라이트 |\n"
+        "|------|--------|\n"
         "| ![Skew-T Dark](docs/skewt_dark.png) |"
         " ![Skew-T Light](docs/skewt_light.png) |\n"
         "<!-- SKEWT_AUTO_END -->"
@@ -493,17 +470,15 @@ def update_readme(params: dict) -> None:
         else:
             content += "\n\n" + block
         readme.write_text(content, encoding="utf-8")
-    print("[✓] README.md 갱신 완료")
+    print("[ok] README.md 갱신 완료")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 진입점
-# ═══════════════════════════════════════════════════════════════════════════════
+# 실행
 
 def main():
     if not API_URL:
-        print("[✗] 환경변수 KMA_API_URL 이 설정되지 않았습니다.")
-        print("    GitHub: Settings → Secrets → KMA_API_URL 을 등록하세요.")
+        print("[error] 환경변수 KMA_API_URL 이 설정되지 않았습니다.")
+        print("    GitHub: Settings > Secrets 에 KMA_API_URL 을 등록하세요.")
         sys.exit(1)
 
     sep = "=" * 56

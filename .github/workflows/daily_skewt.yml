@@ -1,8 +1,8 @@
-name: 🌡️ Daily Skew-T Log-P Update
+name: Daily Skew-T Log-P Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 매일 UTC 00:00 = KST 09:00
+    - cron: '0 0 * * *'   # UTC 00:00 = KST 09:00
   workflow_dispatch:
 
 permissions:
@@ -14,63 +14,54 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: 📥 체크아웃
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 🔤 한글 폰트 설치 (Noto Sans CJK — SIL OFL 1.1)
+      - name: 한글 폰트 설치 (Noto Sans CJK)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk
-          fc-cache -fv
-          echo "[✓] 폰트 설치 완료"
+          fc-cache -f
 
-      - name: 🐍 Python 3.11 설정
+      - name: Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
 
-      - name: 📦 의존성 설치
+      - name: 의존성 설치
         run: pip install -r requirements.txt
 
-      - name: 🔑 Secret 확인
+      - name: Secret 확인
         env:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
         run: |
           if [ -z "$KMA_API_URL" ]; then
-            echo "❌ KMA_API_URL Secret이 설정되어 있지 않습니다."
-            echo "   GitHub → Settings → Secrets → New repository secret"
+            echo "KMA_API_URL secret이 없습니다. Settings > Secrets 에서 추가하세요."
             exit 1
           fi
-          echo "✅ KMA_API_URL 확인됨"
 
-      - name: 🌡️ 단열선도 생성
+      - name: 단열선도 생성
         env:
           KMA_API_URL: ${{ secrets.KMA_API_URL }}
         run: python skewt_plot.py
 
-      - name: 🔍 생성 파일 확인
+      - name: 생성 파일 확인
         run: |
-          echo "=== docs/ 파일 목록 ==="
           ls -lh docs/
-          echo "=== PNG 파일 확인 ==="
           for f in docs/skewt_dark.png docs/skewt_light.png docs/skewt_latest.png; do
-            if [ -f "$f" ]; then
-              echo "✅ $f ($(du -h $f | cut -f1))"
-            else
-              echo "❌ $f 없음"
-            fi
+            [ -f "$f" ] && echo "$f ($(du -h "$f" | cut -f1))" || echo "$f 없음"
           done
 
-      - name: 📤 커밋 & 푸시
+      - name: 커밋 & 푸시
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/ README.md
           if git diff --staged --quiet; then
-            echo "변경사항 없음 — 커밋 생략"
+            echo "변경사항 없음"
           else
             KST_TIME=$(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M KST')
-            git commit -m "🌡️ 단열선도 자동 갱신 [${KST_TIME}]"
+            git commit -m "단열선도 자동 갱신 [${KST_TIME}]"
             git push
           fi

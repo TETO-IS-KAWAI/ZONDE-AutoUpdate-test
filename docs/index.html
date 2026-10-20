@@ -6,854 +6,479 @@
 <title>ZONDE · Skew-T Log-P</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════════════════════ */
 :root {
-  --red:        #FB3640;
-  --red-dim:    rgba(251,54,64,.12);
-  --red-glow:   rgba(251,54,64,.35);
-  --blue:       #0F4C75;
-  --blue-light: #3282B8;
-  --sky:        #BBE1FA;
+  --red:      #FB3640;
+  --blue:     #3282B8;
+  --amber:    #F0A500;
+  --teal:     #00B4A0;
+  --sky:      #BBE1FA;
+  --violet:   #B39DDB;
+  --mint:     #80CBC4;
+  --peach:    #FFCC80;
 
-  --bg:         #0C0C0C;
-  --bg2:        #141414;
-  --bg3:        #1E1E1E;
-  --bg4:        #2C2C2C;
-  --border:     rgba(255,255,255,.08);
-  --border2:    rgba(255,255,255,.14);
-  --text:       #E8E8E8;
-  --sub:        #888;
-  --muted:      #555;
+  --bg:       #0A0A0A;
+  --surface:  #111111;
+  --surface2: #181818;
+  --line:     rgba(255,255,255,.08);
+  --line2:    rgba(255,255,255,.16);
+  --text:     #EDEDED;
+  --sub:      #A1A1A1;
+  --muted:    #6E6E6E;
+  --invert:   #0A0A0A;
 
-  --radius:     10px;
-  --font-body:  'Pretendard', sans-serif;
-  --font-disp:  'Bebas Neue', sans-serif;
-  --ease:       cubic-bezier(.22,1,.36,1);
+  --sans: 'Geist', 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r-sm: 6px;
+  --r-md: 10px;
 }
 [data-theme="light"] {
-  --bg:         #F4F4F4;
-  --bg2:        #FFFFFF;
-  --bg3:        #EAEAEA;
-  --bg4:        #D8D8D8;
-  --border:     rgba(0,0,0,.08);
-  --border2:    rgba(0,0,0,.14);
-  --text:       #111111;
-  --sub:        #555;
-  --muted:      #999;
-  --red-dim:    rgba(251,54,64,.07);
+  --sky:      #4A90C2;
+  --violet:   #7E57C2;
+  --mint:     #26A69A;
+  --peach:    #E08A1E;
+
+  --bg:       #FAFAFA;
+  --surface:  #FFFFFF;
+  --surface2: #F5F5F5;
+  --line:     #EBEBEB;
+  --line2:    #D4D4D4;
+  --text:     #171717;
+  --sub:      #4D4D4D;
+  --muted:    #888888;
+  --invert:   #FFFFFF;
 }
 
-/* ═══════════════════════════════════════════════════════
-   RESET
-═══════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--font-body);
-  font-size:15px;
-  line-height:1.6;
-  min-height:100vh;
-  overflow-x:hidden;
-  transition:background .3s,color .3s;
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
-a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer;border:none;background:none}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+::selection { background: var(--text); color: var(--invert); }
 
-/* ═══════════════════════════════════════════════════════
-   NOISE TEXTURE OVERLAY
-═══════════════════════════════════════════════════════ */
-body::before{
-  content:'';
-  position:fixed;inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  opacity:.03;
-  pointer-events:none;
-  z-index:0;
-}
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
-/* ═══════════════════════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════════════════════ */
-.wrap{
-  position:relative;z-index:1;
-  max-width:900px;
-  margin:0 auto;
-  padding:0 1.25rem 6rem;
+/* nav */
+.nav {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 1px solid var(--line);
 }
+.nav .wrap { display: flex; align-items: center; height: 56px; gap: 24px; }
+.brand { font-weight: 600; font-size: 15px; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+.brand-mark { width: 10px; height: 10px; border-radius: 2px; background: var(--red); }
+.nav-links { display: flex; gap: 4px; margin-left: auto; }
+.nav-links a {
+  font-size: 14px; color: var(--sub);
+  padding: 6px 12px; border-radius: 999px;
+  transition: color .15s, background .15s;
+}
+.nav-links a:hover { color: var(--text); background: var(--surface2); }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  color: var(--sub);
+  transition: color .15s, border-color .15s;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--line2); }
+.icon-btn svg { width: 16px; height: 16px; }
 
-/* ═══════════════════════════════════════════════════════
-   HERO HEADER
-═══════════════════════════════════════════════════════ */
-.hero{
-  padding:3.5rem 0 2.5rem;
-  display:flex;
-  flex-direction:column;
-  gap:.5rem;
-  position:relative;
+/* hero */
+.hero { padding: 72px 0 40px; }
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em;
 }
-.hero::after{
-  content:'';
-  position:absolute;
-  left:-1.25rem; right:-1.25rem; bottom:0;
-  height:1px;
-  background:linear-gradient(90deg,transparent,var(--border2) 30%,var(--border2) 70%,transparent);
+.hero h1 {
+  margin-top: 12px;
+  font-size: clamp(34px, 6vw, 48px);
+  font-weight: 600; line-height: 1.05; letter-spacing: -.045em;
 }
-.hero-eyebrow{
-  font-size:.72rem;
-  letter-spacing:.2em;
-  text-transform:uppercase;
-  color:var(--red);
-  font-weight:600;
+.hero p { margin-top: 14px; font-size: 17px; color: var(--sub); max-width: 560px; }
+.meta-row {
+  margin-top: 24px;
+  display: flex; flex-wrap: wrap; gap: 8px;
 }
-.hero-title{
-  font-family:var(--font-disp);
-  font-size:clamp(3.2rem,9vw,6rem);
-  line-height:.95;
-  letter-spacing:.02em;
-  color:var(--text);
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px; color: var(--sub);
 }
-.hero-title span{color:var(--red)}
-.hero-sub{
-  font-size:.85rem;
-  color:var(--sub);
-  margin-top:.25rem;
-}
-.hero-controls{
-  position:absolute;
-  top:3.5rem; right:0;
-  display:flex;
-  gap:.5rem;
-  align-items:center;
-}
+.chip b { color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
 
-/* ═══════════════════════════════════════════════════════
-   STATUS BAR
-═══════════════════════════════════════════════════════ */
-.status-bar{
-  display:flex;
-  align-items:center;
-  gap:1rem;
-  padding:.9rem 1.2rem;
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  margin:1.8rem 0 1rem;
-  font-size:.8rem;
-  color:var(--sub);
-  flex-wrap:wrap;
-}
-.status-dot{
-  width:7px;height:7px;
-  border-radius:50%;
-  background:var(--red);
-  box-shadow:0 0 8px var(--red-glow);
-  animation:pulse-dot 2s ease-in-out infinite;
-  flex-shrink:0;
-}
-@keyframes pulse-dot{
-  0%,100%{box-shadow:0 0 8px var(--red-glow)}
-  50%{box-shadow:0 0 16px var(--red-glow),0 0 32px var(--red-dim)}
-}
-.status-date{color:var(--text);font-weight:500}
-.status-time{margin-left:auto;font-size:.75rem}
+/* section */
+section { padding: 32px 0; }
+.sec-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -.03em; line-height: 1.3; }
+.sec-head .eyebrow { display: block; margin-bottom: 4px; }
+.sec-head .tools { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* ═══════════════════════════════════════════════════════
-   SECTION LABEL
-═══════════════════════════════════════════════════════ */
-.sec-label{
-  font-size:.68rem;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-  color:var(--muted);
-  font-weight:600;
-  margin-bottom:.8rem;
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
 }
 
-/* ═══════════════════════════════════════════════════════
-   PLOT CARD
-═══════════════════════════════════════════════════════ */
-.plot-card{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  margin-bottom:1rem;
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s, opacity .15s;
 }
-.plot-toolbar{
-  display:flex;
-  align-items:center;
-  gap:.5rem;
-  padding:.75rem 1rem;
-  border-bottom:1px solid var(--border);
-  flex-wrap:wrap;
-}
-.plot-toolbar .sec-label{margin:0;flex:1}
-.img-toggle{
-  display:flex;
-  background:var(--bg3);
-  border-radius:6px;
-  padding:3px;
-  gap:2px;
-}
-.img-toggle button{
-  padding:.28rem .75rem;
-  font-size:.75rem;
-  font-weight:600;
-  border-radius:4px;
-  color:var(--sub);
-  transition:background .2s,color .2s;
-  letter-spacing:.04em;
-}
-.img-toggle button.active{
-  background:var(--red);
-  color:#fff;
-}
-.plot-body{
-  position:relative;
-  min-height:240px;
-  background:var(--bg);
-}
-#plot-img{
-  width:100%;
-  display:none;
-  transition:opacity .4s var(--ease);
-}
-#plot-placeholder{
-  position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--muted);
-  font-size:.85rem;
-  text-align:center;
-  padding:2rem;
-}
-#plot-placeholder.loading::after{
-  content:'';
-  display:block;
-  width:28px;height:28px;
-  border:2px solid var(--border2);
-  border-top-color:var(--red);
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  margin:1rem auto 0;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.plot-footer{
-  display:flex;
-  gap:.5rem;
-  padding:.75rem 1rem;
-  border-top:1px solid var(--border);
-  flex-wrap:wrap;
-  align-items:center;
-}
-#update-time{
-  font-size:.75rem;
-  color:var(--muted);
-  margin-left:auto;
-}
+.btn:active { transform: scale(.98); }
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--text); color: var(--invert); }
+.btn-primary:hover { opacity: .86; }
+.btn-secondary { border: 1px solid var(--line2); color: var(--text); background: var(--surface); }
+.btn-secondary:hover { background: var(--surface2); }
 
-/* ═══════════════════════════════════════════════════════
-   PARAMS GRID
-═══════════════════════════════════════════════════════ */
-.params-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
-  gap:.6rem;
-  margin-bottom:1rem;
+.segmented {
+  display: inline-flex; padding: 2px; gap: 2px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface2);
 }
-.param-card{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:.9rem 1rem 1rem;
-  position:relative;
-  overflow:hidden;
-  transition:border-color .2s,transform .2s;
+.segmented button {
+  height: 26px; padding: 0 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  transition: background .15s, color .15s;
 }
-.param-card:hover{
-  border-color:var(--border2);
-  transform:translateY(-2px);
-}
-.param-card::before{
-  content:'';
-  position:absolute;
-  top:0;left:0;right:0;
-  height:2px;
-  background:var(--accent-line,transparent);
-  transition:opacity .2s;
-}
-.param-card.red::before  {--accent-line:var(--red)}
-.param-card.blue::before {--accent-line:var(--blue-light)}
-.param-card.amber::before{--accent-line:#F0A500}
-.param-card.teal::before {--accent-line:#00B4A0}
-.param-card.sky::before  {--accent-line:var(--sky)}
+.segmented button.active { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line2); }
 
-.param-label{
-  font-size:.68rem;
-  color:var(--muted);
-  letter-spacing:.06em;
-  text-transform:uppercase;
-  font-weight:600;
-  margin-bottom:.35rem;
+/* plot */
+.plot-body {
+  position: relative; min-height: 320px;
+  display: grid; place-items: center;
+  background: var(--surface2);
 }
-.param-name{
-  font-size:.78rem;
-  color:var(--sub);
-  margin-bottom:.5rem;
-  font-weight:400;
+/* 그래프 PNG 배경색과 맞춤 (skewt_plot.py 팔레트의 bg) */
+.plot-body[data-img="dark"]  { background: #0d1117; }
+.plot-body[data-img="light"] { background: #ffffff; }
+#plot-img { width: 100%; max-width: 720px; display: none; }
+#plot-placeholder { color: var(--muted); font-size: 14px; text-align: center; padding: 32px; }
+#plot-placeholder.loading::after {
+  content: ''; display: block; margin: 12px auto 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--line2); border-top-color: var(--text);
+  animation: spin .8s linear infinite;
 }
-.param-value{
-  font-family:var(--font-disp);
-  font-size:2rem;
-  line-height:1;
-  letter-spacing:.02em;
+@keyframes spin { to { transform: rotate(360deg); } }
+.plot-foot {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 16px; border-top: 1px solid var(--line);
 }
-.param-card.red  .param-value{color:var(--red)}
-.param-card.blue .param-value{color:var(--blue-light)}
-.param-card.amber .param-value{color:#F0A500}
-.param-card.teal .param-value{color:#00B4A0}
-.param-card.sky  .param-value{color:var(--sky)}
-.param-sub{
-  font-size:.72rem;
-  color:var(--muted);
-  margin-top:.3rem;
-}
+.plot-foot .note { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-/* ═══════════════════════════════════════════════════════
-   TABLE SECTION
-═══════════════════════════════════════════════════════ */
-.table-section{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  margin-bottom:1rem;
+/* params */
+.params {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--line);
 }
-.table-head{
-  display:flex;
-  align-items:center;
-  gap:.6rem;
-  padding:.75rem 1rem;
-  border-bottom:1px solid var(--border);
-  flex-wrap:wrap;
+.param { background: var(--surface); padding: 20px; min-height: 132px; display: flex; flex-direction: column; }
+.param-key {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 12px; color: var(--sub);
 }
-.table-head .sec-label{margin:0;flex:1}
-.table-wrap{overflow-x:auto}
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:.8rem;
-  font-variant-numeric:tabular-nums;
+.param-key i { width: 8px; height: 8px; border-radius: 2px; background: var(--c, var(--muted)); }
+.param-name { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.param-val {
+  margin-top: auto; padding-top: 16px;
+  font-family: var(--mono); font-size: 26px; font-weight: 500;
+  letter-spacing: -.03em; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
-thead th{
-  background:var(--bg3);
-  color:var(--muted);
-  text-align:right;
-  padding:.55rem .9rem;
-  font-size:.68rem;
-  font-weight:700;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  border-bottom:1px solid var(--border2);
-  white-space:nowrap;
-}
-thead th:first-child { text-align: right; }
-tbody tr{border-bottom:1px solid var(--border)}
-tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:var(--bg3)}
-tbody td{
-  padding:.45rem .9rem;
-  text-align:right;
-  color:var(--text);
-  white-space:nowrap;
-  transition:background .15s;
-}
-tbody td:first-child {
-  text-align: right;
-  font-weight: 600;
-  color: var(--red);
-}
-.na{color:var(--muted);font-style:italic}
+.param-val small { font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.param-sub { margin-top: 4px; font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 18px; }
+.param-val.na { color: var(--muted); font-size: 20px; }
 
-/* ═══════════════════════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════════════════════ */
-.btn{
-  display:inline-flex;
-  align-items:center;
-  gap:.4rem;
-  padding:.38rem .9rem;
-  font-size:.78rem;
-  font-weight:600;
-  border-radius:6px;
-  letter-spacing:.03em;
-  transition:background .2s,color .2s,border-color .2s,transform .1s;
-  white-space:nowrap;
-  user-select:none;
+/* table */
+.table-wrap { overflow: auto; max-height: 560px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface2);
+  padding: 10px 16px;
+  text-align: right; white-space: nowrap;
+  font-size: 12px; font-weight: 500; color: var(--sub);
+  border-bottom: 1px solid var(--line);
 }
-.btn:active{transform:scale(.97)}
+thead th span { display: block; font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--muted); }
+tbody td {
+  padding: 9px 16px;
+  text-align: right; white-space: nowrap;
+  font-family: var(--mono); font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface2); }
+tbody td:first-child { color: var(--text); font-weight: 500; }
+tbody tr.std td:first-child { color: var(--red); }
+td.na { color: var(--muted); }
+td.empty { text-align: center; padding: 32px; font-family: var(--sans); color: var(--muted); }
 
-.btn-primary{
-  background:var(--red);
-  color:#fff;
+/* footer */
+footer {
+  margin-top: 48px; padding: 32px 0 48px;
+  border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--muted);
 }
-.btn-primary:hover{background:#e02c35}
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; }
+footer a { color: var(--sub); }
+footer a:hover { color: var(--text); }
+footer .right { margin-left: auto; }
 
-.btn-outline{
-  background:transparent;
-  color:var(--sub);
-  border:1px solid var(--border2);
+/* toast */
+#toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 50;
+  transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  background: var(--text); color: var(--invert);
+  font-size: 13px; padding: 8px 16px; border-radius: 999px;
+  transition: opacity .2s, transform .2s;
 }
-.btn-outline:hover{
-  border-color:var(--red);
-  color:var(--red);
-  background:var(--red-dim);
-}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-.btn-ghost{
-  background:var(--bg3);
-  color:var(--sub);
+@media (max-width: 760px) {
+  .params { grid-template-columns: repeat(2, 1fr); }
+  .nav-links { display: none; }
+  .nav .wrap .icon-btn { margin-left: auto; }
 }
-.btn-ghost:hover{background:var(--bg4);color:var(--text)}
-
-/* 테마/아이콘 버튼 */
-.icon-btn{
-  width:34px;height:34px;
-  border-radius:8px;
-  font-size:.95rem;
-  background:var(--bg3);
-  border:1px solid var(--border);
-  color:var(--text);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .2s,border-color .2s;
+@media (max-width: 480px) {
+  .wrap { padding: 0 16px; }
+  .hero { padding: 48px 0 24px; }
+  .param { padding: 16px; min-height: 116px; }
+  .param-val { font-size: 22px; }
+  .plot-foot .note { margin-left: 0; width: 100%; }
 }
-.icon-btn:hover{background:var(--bg4);border-color:var(--border2)}
-
-/* ═══════════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════════ */
-#toast{
-  position:fixed;
-  bottom:2rem;left:50%;
-  transform:translateX(-50%) translateY(1rem);
-  background:var(--bg3);
-  border:1px solid var(--border2);
-  color:var(--text);
-  font-size:.8rem;
-  padding:.6rem 1.2rem;
-  border-radius:100px;
-  opacity:0;
-  transition:opacity .25s,transform .25s var(--ease);
-  pointer-events:none;
-  z-index:9999;
-  white-space:nowrap;
-  box-shadow:0 8px 32px rgba(0,0,0,.4);
-}
-#toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-
-/* ═══════════════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════════════ */
-.footer{
-  text-align:center;
-  padding:2rem 0 0;
-  color:var(--muted);
-  font-size:.75rem;
-  border-top:1px solid var(--border);
-}
-.footer a{color:var(--red);transition:opacity .2s}
-.footer a:hover{opacity:.7}
-.footer-logo{
-  font-family:var(--font-disp);
-  font-size:1.4rem;
-  letter-spacing:.1em;
-  color:var(--border2);
-  margin-bottom:.5rem;
-}
-
-/* ═══════════════════════════════════════════════════════
-   ENTRANCE ANIMATION
-═══════════════════════════════════════════════════════ */
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(18px)}
-  to{opacity:1;transform:translateY(0)}
-}
-.anim{
-  opacity:0;
-  animation:fadeUp .55s var(--ease) forwards;
-}
-.anim-1{animation-delay:.05s}
-.anim-2{animation-delay:.12s}
-.anim-3{animation-delay:.20s}
-.anim-4{animation-delay:.28s}
-.anim-5{animation-delay:.36s}
-
-/* ═══════════════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════════════ */
-@media(max-width:540px){
-  .hero-title{font-size:3rem}
-  .params-grid{grid-template-columns:1fr 1fr}
-  .plot-toolbar{gap:.4rem}
-  .hero-controls{position:static;margin-top:.5rem;flex-direction:row}
-}
-
-/* ═══════════════════════════════════════════════════════
-   DYNAMIC EFFECTS
-═══════════════════════════════════════════════════════ */
-
-/* 배경 그라디언트 drift */
-body::after{
-  content:'';
-  position:fixed;inset:0;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(251,54,64,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 80% 20%, rgba(15,76,117,.06) 0%, transparent 55%);
-  pointer-events:none;
-  z-index:0;
-  animation:bgdrift 18s ease-in-out infinite alternate;
-}
-@keyframes bgdrift{
-  0%  {opacity:.6; transform:scale(1)   translateX(0)   translateY(0)}
-  33% {opacity:1;  transform:scale(1.05) translateX(1%)  translateY(-1%)}
-  66% {opacity:.8; transform:scale(.98) translateX(-1%) translateY(1%)}
-  100%{opacity:1;  transform:scale(1.03) translateX(.5%) translateY(-.5%)}
-}
-
-/* 파라미터 카드 shimmer + tilt */
-.param-card{
-  transform-style:preserve-3d;
-  will-change:transform;
-  cursor:default;
-}
-.param-card .shimmer{
-  position:absolute;inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-  opacity:0;
-  transition:opacity .3s;
-  background:radial-gradient(
-    circle at var(--mx,50%) var(--my,50%),
-    rgba(255,255,255,.10) 0%,
-    rgba(255,255,255,.03) 40%,
-    transparent 70%
-  );
-  z-index:1;
-}
-.param-card:hover .shimmer{opacity:1}
-
-/* 카드 내 콘텐츠가 shimmer 위로 */
-.param-card > *:not(.shimmer){position:relative;z-index:2}
-
-/* ripple 버튼 */
-.btn{position:relative;overflow:hidden}
-.ripple{
-  position:absolute;
-  border-radius:50%;
-  transform:scale(0);
-  animation:ripple-anim .5s linear;
-  background:rgba(255,255,255,.2);
-  pointer-events:none;
-}
-@keyframes ripple-anim{
-  to{transform:scale(4);opacity:0}
-}
-
-/* 테이블 행 hover 라인 */
-tbody tr{
-  position:relative;
-  transition:background .15s;
-}
-tbody tr::before{
-  content:'';
-  position:absolute;
-  left:0;top:0;bottom:0;
-  width:2px;
-  background:var(--red);
-  transform:scaleY(0);
-  transition:transform .2s var(--ease);
-  transform-origin:center;
-}
-tbody tr:hover::before{transform:scaleY(1)}
-
-/* 플롯 이미지 fade */
-#plot-img{
-  transition:opacity .45s var(--ease);
-}
-
-/* 상태 dot hover glow 강화 */
-.status-bar:hover .status-dot{
-  box-shadow:0 0 20px var(--red-glow),0 0 40px rgba(251,54,64,.2);
-}
-
-/* 히어로 타이틀 글자 개별 애니메이션 */
-.hero-char{
-  display:inline-block;
-  transition:color .3s, transform .3s var(--ease);
-}
-.hero-title:hover .hero-char{
-  color:var(--red);
-}
-.hero-title:hover .hero-char:nth-child(odd){
-  transform:translateY(-3px);
-}
-.hero-title:hover .hero-char:nth-child(even){
-  transform:translateY(3px);
-}
-
-/* 플롯 카드 테두리 glow on hover */
-.plot-card{
-  transition:box-shadow .3s, border-color .3s;
-}
-.plot-card:hover{
-  box-shadow:0 0 0 1px rgba(251,54,64,.2), 0 8px 40px rgba(0,0,0,.4);
-}
-
-/* 섹션 레이블 등장 언더라인 */
-.sec-label{
-  position:relative;
-  display:inline-block;
-}
-
-/* img toggle 버튼 전환 애니메이션 */
-.img-toggle button{
-  position:relative;
-  overflow:hidden;
-  transition:background .25s var(--ease), color .25s;
-}
-
-/* 스크롤 reveal */
-.reveal{
-  opacity:0;
-  transform:translateY(20px);
-  transition:opacity .55s var(--ease), transform .55s var(--ease);
-}
-.reveal.visible{
-  opacity:1;
-  transform:translateY(0);
-}
-
-/* footer logo hover */
-.footer-logo{
-  transition:color .3s, letter-spacing .3s;
-  cursor:default;
-}
-.footer-logo:hover{
-  color:var(--red);
-  letter-spacing:.2em;
-}
-
-/* param value 카운트업 효과용 */
-.param-value{
-  transition:transform .2s var(--ease);
-}
-.param-card:hover .param-value{
-  transform:scale(1.04);
-}
-
 </style>
 </head>
 <body>
 <div id="toast"></div>
 
-<div class="wrap">
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="brand-mark"></span>ZONDE</a>
+    <div class="nav-links">
+      <a href="#diagram">단열선도</a>
+      <a href="#params">지수</a>
+      <a href="#levels">관측 레벨</a>
+    </div>
+    <button class="icon-btn" id="theme-toggle" aria-label="테마 전환"></button>
+  </div>
+</nav>
 
-  <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
-  <header class="hero anim anim-1">
-    <div class="hero-eyebrow">기상청 API 허브 · 자동 관측</div>
-    <h1 class="hero-title">SKEW<span>-</span>T<br>LOG<span>-</span>P</h1>
-    <p class="hero-sub">라디오존데 단열선도 · 매일 자동 갱신</p>
-    <div class="hero-controls">
-      <button class="icon-btn" id="theme-toggle" title="테마 전환" aria-label="테마 전환">☀️</button>
+<main class="wrap" id="top">
+
+  <header class="hero">
+    <div class="eyebrow">KMA API Hub / Radiosonde</div>
+    <h1>Skew-T Log-P 단열선도</h1>
+    <p>기상청 라디오존데 관측 자료로 매일 오전에 다시 그립니다.</p>
+    <div class="meta-row">
+      <span class="chip"><span class="dot"></span>마지막 갱신 <b id="generated">-</b></span>
+      <span class="chip">관측 레벨 <b id="level-count">-</b></span>
     </div>
   </header>
 
-  <!-- ── STATUS BAR ────────────────────────────────────────────────────────── -->
-  <div class="status-bar anim anim-2">
-    <span class="status-dot"></span>
-    <span>자동 갱신 활성</span>
-    <span class="status-date" id="badge-date">—</span>
-    <span class="status-time" id="update-time"></span>
-  </div>
-
-  <!-- ── PLOT ──────────────────────────────────────────────────────────────── -->
-  <div class="plot-card anim anim-3">
-    <div class="plot-toolbar">
-      <span class="sec-label">Sounding Diagram</span>
-      <div class="img-toggle">
-        <button id="img-dark-btn"  class="active" onclick="switchImgTheme('dark')">DARK</button>
-        <button id="img-light-btn"           onclick="switchImgTheme('light')">LIGHT</button>
+  <section id="diagram">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Diagram</span>
+        <h2>단열선도</h2>
+      </div>
+      <div class="tools">
+        <div class="segmented" role="tablist">
+          <button id="img-dark-btn" class="active" onclick="switchImgTheme('dark')">Dark</button>
+          <button id="img-light-btn" onclick="switchImgTheme('light')">Light</button>
+        </div>
       </div>
     </div>
-    <div class="plot-body">
-      <div id="plot-placeholder" class="loading"></div>
-      <img id="plot-img" alt="Skew-T Log-P Diagram"/>
+    <div class="card">
+      <div class="plot-body">
+        <div id="plot-placeholder" class="loading"></div>
+        <img id="plot-img" alt="Skew-T Log-P 단열선도"/>
+      </div>
+      <div class="plot-foot">
+        <button class="btn btn-primary" onclick="downloadImg('dark')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 7.5 8 11.5l4-4M3 14h10"/></svg>Dark PNG
+        </button>
+        <button class="btn btn-secondary" onclick="downloadImg('light')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 7.5 8 11.5l4-4M3 14h10"/></svg>Light PNG
+        </button>
+        <span class="note">1050 - 100 hPa</span>
+      </div>
     </div>
-    <div class="plot-footer">
-      <button class="btn btn-primary" onclick="downloadImg('dark')">⬇ Dark PNG</button>
-      <button class="btn btn-outline" onclick="downloadImg('light')">⬇ Light PNG</button>
-      <span id="update-time2"></span>
+  </section>
+
+  <section id="params">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Parameters</span>
+        <h2>대기 안정도 지수</h2>
+      </div>
     </div>
+    <div class="card">
+      <div class="params">
+        <div class="param" style="--c:var(--red)">
+          <div class="param-key"><i></i>CAPE</div>
+          <div class="param-name">대류 가용 잠재 에너지</div>
+          <div class="param-val" id="val-cape">-</div>
+          <div class="param-sub"></div>
+        </div>
+        <div class="param" style="--c:var(--blue)">
+          <div class="param-key"><i></i>CIN</div>
+          <div class="param-name">대류 억제 에너지</div>
+          <div class="param-val" id="val-cin">-</div>
+          <div class="param-sub"></div>
+        </div>
+        <div class="param" style="--c:var(--amber)">
+          <div class="param-key"><i></i>LCL</div>
+          <div class="param-name">상승 응결 고도</div>
+          <div class="param-val" id="val-lcl">-</div>
+          <div class="param-sub" id="sub-lcl"></div>
+        </div>
+        <div class="param" style="--c:var(--teal)">
+          <div class="param-key"><i></i>LFC</div>
+          <div class="param-name">자유 대류 고도</div>
+          <div class="param-val" id="val-lfc">-</div>
+          <div class="param-sub" id="sub-lfc"></div>
+        </div>
+        <div class="param" style="--c:var(--sky)">
+          <div class="param-key"><i></i>EL</div>
+          <div class="param-name">평형 고도</div>
+          <div class="param-val" id="val-el">-</div>
+          <div class="param-sub" id="sub-el"></div>
+        </div>
+        <div class="param" style="--c:var(--violet)">
+          <div class="param-key"><i></i>PWAT</div>
+          <div class="param-name">가강수량</div>
+          <div class="param-val" id="val-pwat">-</div>
+          <div class="param-sub"></div>
+        </div>
+        <div class="param" style="--c:var(--mint)">
+          <div class="param-key"><i></i>SHR06</div>
+          <div class="param-name">0-6 km 연직 시어</div>
+          <div class="param-val" id="val-shr">-</div>
+          <div class="param-sub"></div>
+        </div>
+        <div class="param" style="--c:var(--peach)">
+          <div class="param-key"><i></i>SRH</div>
+          <div class="param-name">0-3 km 폭풍 상대 헬리시티</div>
+          <div class="param-val" id="val-srh">-</div>
+          <div class="param-sub"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="levels">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Levels</span>
+        <h2>관측 레벨</h2>
+      </div>
+      <div class="tools">
+        <button class="btn btn-secondary" onclick="downloadTable('xlsx')">XLSX</button>
+        <button class="btn btn-secondary" onclick="downloadTable('csv')">CSV</button>
+        <button class="btn btn-secondary" onclick="downloadTable('txt')">TXT</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>기압<span>hPa</span></th>
+              <th>고도<span>m</span></th>
+              <th>기온<span>°C</span></th>
+              <th>이슬점<span>°C</span></th>
+              <th>풍향<span>°</span></th>
+              <th>풍속<span>m/s</span></th>
+            </tr>
+          </thead>
+          <tbody id="level-tbody">
+            <tr><td colspan="6" class="empty">불러오는 중</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>자료: <a href="https://apihub.kma.go.kr" target="_blank" rel="noopener">기상청 API 허브</a></span>
+    <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank" rel="noopener">GitHub</a>
+    <span class="right">© 2026 TETO-IS-KAWAI · MIT</span>
   </div>
-
-  <!-- ── PARAMS ────────────────────────────────────────────────────────────── -->
-  <p class="sec-label anim anim-3">Sounding Parameters</p>
-  <div class="params-grid anim anim-4">
-
-    <div class="param-card red">
-      <div class="param-label">CAPE</div>
-      <div class="param-name">대류 유효 위치 에너지</div>
-      <div class="param-value" id="val-cape">—</div>
-      <div class="param-sub">J/kg</div>
-    </div>
-
-    <div class="param-card blue">
-      <div class="param-label">CIN</div>
-      <div class="param-name">대류 억제 에너지</div>
-      <div class="param-value" id="val-cin">—</div>
-      <div class="param-sub">J/kg</div>
-    </div>
-
-    <div class="param-card amber">
-      <div class="param-label">LCL</div>
-      <div class="param-name">들올림 응결 고도</div>
-      <div class="param-value" id="val-lcl" style="font-size:1.25rem;line-height:1.3">—</div>
-      <div class="param-sub" id="sub-lcl"></div>
-    </div>
-
-    <div class="param-card teal">
-      <div class="param-label">LFC</div>
-      <div class="param-name">자유 대류 고도</div>
-      <div class="param-value" id="val-lfc" style="font-size:1.25rem;line-height:1.3">—</div>
-      <div class="param-sub" id="sub-lfc"></div>
-    </div>
-
-    <div class="param-card sky">
-      <div class="param-label">EL</div>
-      <div class="param-name">평형 고도</div>
-      <div class="param-value" id="val-el" style="font-size:1.25rem;line-height:1.3">—</div>
-      <div class="param-sub" id="sub-el"></div>
-    </div>
-
-    <div class="param-card" style="--accent-line:#B39DDB">
-      <div class="param-label">PWAT</div>
-      <div class="param-name">가강수량</div>
-      <div class="param-value" id="val-pwat" style="color:#B39DDB">—</div>
-      <div class="param-sub">mm</div>
-    </div>
-
-    <div class="param-card" style="--accent-line:#80CBC4">
-      <div class="param-label">SHR06</div>
-      <div class="param-name">0–6 km 벌크 윈드시어</div>
-      <div class="param-value" id="val-shr" style="color:#80CBC4">—</div>
-      <div class="param-sub">m/s</div>
-    </div>
-
-    <div class="param-card" style="--accent-line:#FFCC80">
-      <div class="param-label">SRH</div>
-      <div class="param-name">0–3 km 폭풍 상대 헬리시티</div>
-      <div class="param-value" id="val-srh" style="color:#FFCC80;font-size:1.3rem">—</div>
-      <div class="param-sub">m²/s²</div>
-    </div>
-
-  </div>
-
-  <!-- ── TABLE ─────────────────────────────────────────────────────────────── -->
-  <div class="table-section anim anim-5">
-    <div class="table-head">
-      <span class="sec-label">Observation Levels</span>
-      <button class="btn btn-ghost" onclick="downloadTable('xlsx')">⬇ XLSX</button>
-      <button class="btn btn-ghost" onclick="downloadTable('csv')">⬇ CSV</button>
-      <button class="btn btn-ghost" onclick="downloadTable('txt')">⬇ TXT</button>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Pressure<br><span style="font-weight:400;text-transform:none">(hPa)</span></th>
-            <th>Height<br><span style="font-weight:400;text-transform:none">(m)</span></th>
-            <th>Temp<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
-            <th>Dew Point<br><span style="font-weight:400;text-transform:none">(°C)</span></th>
-            <th>Wind Dir<br><span style="font-weight:400;text-transform:none">(°)</span></th>
-            <th>Wind Spd<br><span style="font-weight:400;text-transform:none">(m/s)</span></th>
-          </tr>
-        </thead>
-        <tbody id="level-tbody">
-          <tr><td colspan="6" class="na" style="text-align:center;padding:1.5rem">
-            데이터 불러오는 중…
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── FOOTER ────────────────────────────────────────────────────────────── -->
-  <footer class="footer">
-    <div class="footer-logo">ZONDE</div>
-    <p>
-      데이터 출처: <a href="https://apihub.kma.go.kr" target="_blank" rel="noopener">기상청 API 허브</a>
-      &nbsp;·&nbsp;
-      <a href="https://github.com/TETO-IS-KAWAI/ZONDE-API-Analyze" target="_blank" rel="noopener">GitHub</a>
-    </p>
-    <p style="margin-top:.4rem">© 2025 TETO-IS-KAWAI · MIT License</p>
-  </footer>
-
-</div><!-- /wrap -->
+</footer>
 
 <script>
 'use strict';
 
-/* ── 유틸 ──────────────────────────────────────────────────────────────────── */
-const $  = id => document.getElementById(id);
-const setText = (id, v) => { const el=$(id); if(el) el.textContent=v; };
+const $ = id => document.getElementById(id);
+const setText = (id, v) => { const el = $(id); if (el) el.textContent = v; };
 
-/* ── 토스트 ─────────────────────────────────────────────────────────────────── */
 let _toastTimer;
 function showToast(msg) {
   const t = $('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ── 테마 관리 ──────────────────────────────────────────────────────────────── */
-const html     = document.documentElement;
+/* 테마 */
+const html = document.documentElement;
 const themeBtn = $('theme-toggle');
+const ICON_SUN  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></svg>';
+const ICON_MOON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z"/></svg>';
 
 function applyTheme(theme) {
   html.setAttribute('data-theme', theme);
-  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  themeBtn.title = theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환';
-  try { localStorage.setItem('zonde_theme', theme); } catch(_) {}
+  themeBtn.innerHTML = theme === 'dark' ? ICON_SUN : ICON_MOON;
+  themeBtn.title = theme === 'dark' ? '라이트 모드' : '다크 모드';
 }
 
+let _imgTheme;
 (function initTheme() {
   let saved;
-  try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
+  try { saved = localStorage.getItem('zonde_theme'); } catch (_) {}
   const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   applyTheme(saved || sys);
+  _imgTheme = html.getAttribute('data-theme');
 })();
 
-themeBtn.addEventListener('click', () =>
-  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
-);
+themeBtn.addEventListener('click', () => {
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem('zonde_theme', next); } catch (_) {}
+  switchImgTheme(next);
+});
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  let saved; try { saved = localStorage.getItem('zonde_theme'); } catch(_) {}
-  if (!saved) applyTheme(e.matches ? 'dark' : 'light');
+  let saved; try { saved = localStorage.getItem('zonde_theme'); } catch (_) {}
+  if (!saved) { applyTheme(e.matches ? 'dark' : 'light'); switchImgTheme(e.matches ? 'dark' : 'light'); }
 });
 
-/* ── 이미지 테마 전환 ───────────────────────────────────────────────────────── */
-let _imgTheme = 'dark';
+/* 그래프 이미지 */
 function switchImgTheme(theme) {
   _imgTheme = theme;
   $('img-dark-btn').classList.toggle('active', theme === 'dark');
@@ -861,279 +486,183 @@ function switchImgTheme(theme) {
   loadImage();
 }
 
-/* ── 이미지 다운로드 ────────────────────────────────────────────────────────── */
+function loadImage() {
+  const img  = $('plot-img');
+  const phld = $('plot-placeholder');
+  const fname = _imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
+  if (img.src.endsWith(fname) && img.style.display === 'block') return;
+
+  let fallbackTried = false;
+  img.onload = () => {
+    img.parentElement.dataset.img = img.src.includes('light') ? 'light' : 'dark';
+    phld.style.display = 'none';
+    img.style.display = 'block';
+  };
+  img.onerror = () => {
+    if (!fallbackTried) {
+      fallbackTried = true;
+      img.src = _imgTheme === 'dark' ? 'skewt_light.png' : 'skewt_latest.png';
+    } else {
+      phld.classList.remove('loading');
+      phld.textContent = '그래프 파일이 없습니다. Actions를 먼저 실행해 주세요.';
+    }
+  };
+  img.src = fname;
+}
+
 function downloadImg(theme) {
   const fname = theme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
   const a = document.createElement('a');
   a.href = fname; a.download = fname; a.click();
-  showToast(`${theme === 'dark' ? '🌑 Dark' : '☀️ Light'} PNG 다운로드 시작`);
+  showToast(`${fname} 다운로드`);
 }
 
-/* ── 전역 상태 ──────────────────────────────────────────────────────────────── */
+/* meta.json */
 let _meta = null;
-
-/* ── meta.json 로드 ─────────────────────────────────────────────────────────── */
-/* ── 숫자 카운트업 ───────────────────────────────────────────────────────── */
-function animateCount(el, target, decimals, duration) {
-  if (!el || target === null || target === undefined || isNaN(target)) return;
-  const start = performance.now();
-  (function step(now) {
-    const t    = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = (target * ease).toFixed(decimals);
-    if (t < 1) requestAnimationFrame(step);
-  })(start);
-}
 
 async function loadMeta() {
   try {
-    const res  = await fetch(`meta.json?t=${Date.now()}`);
+    const res = await fetch(`meta.json?t=${Date.now()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    if (!text.trim().startsWith('{')) throw new Error('비정상 응답');
-    _meta = JSON.parse(text);
-  } catch(e) {
+    _meta = await res.json();
+  } catch (e) {
     console.warn('meta.json 로드 실패:', e);
-    const ph = $('plot-placeholder');
-    ph.classList.remove('loading');
-    ph.innerHTML = '<span>⚠ 데이터를 불러올 수 없습니다.<br>Actions가 아직 실행되지 않았을 수 있습니다.</span>';
+    const tbody = $('level-tbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">데이터를 불러오지 못했습니다.</td></tr>';
     return;
   }
 
-  /* 날짜 배지 */
-  const bd = $('badge-date');
-  bd.textContent = _meta.generated || '날짜 없음';
-  setText('update-time', `갱신: ${_meta.generated || '—'}`);
+  setText('generated', _meta.generated || '-');
+  setText('level-count', (_meta.levels || []).length);
 
-  /* 수치 포맷 */
-  const fN = (v, d=1) => (v===null||v===undefined) ? '—' : Number(v).toFixed(d);
+  const setNum = (id, v, d, unit) => {
+    const el = $(id);
+    if (v === null || v === undefined) { el.textContent = 'N/A'; el.classList.add('na'); return; }
+    el.classList.remove('na');
+    el.innerHTML = `${Number(v).toFixed(d)}<small>${unit}</small>`;
+  };
+  setNum('val-cape', _meta.cape,  1, 'J/kg');
+  setNum('val-cin',  _meta.cin,   1, 'J/kg');
+  setNum('val-pwat', _meta.pwat,  1, 'mm');
+  setNum('val-shr',  _meta.shr06, 1, 'm/s');
+  setNum('val-srh',  _meta.srh,   0, 'm²/s²');
 
-  // 첫 로드: 카운트업 / 이후 갱신: 바로 세팅
-  const _nums = [
-    ['val-cape', _meta.cape,  1],
-    ['val-cin',  _meta.cin,   1],
-    ['val-pwat', _meta.pwat,  1],
-    ['val-shr',  _meta.shr06, 1],
-    ['val-srh',  _meta.srh,   0],
-  ];
-  if (!window._countupDone) {
-    window._countupDone = true;
-    _nums.forEach(([id, val, d]) => animateCount($(id), val, d, 900));
-  } else {
-    _nums.forEach(([id, val, d]) => setText(id, fN(val, d)));
+  for (const key of ['lcl', 'lfc', 'el']) {
+    const p = _meta[key + '_p'], t = _meta[key + '_t'];
+    setNum('val-' + key, p, 1, 'hPa');
+    setText('sub-' + key, (p !== null && p !== undefined) ? `${t} °C` : '');
   }
-  function setLevel(key, vId, sId) {
-    const p = _meta[key+'_p'], t = _meta[key+'_t'];
-    if (p !== null && p !== undefined) {
-      setText(vId, p + ' hPa');
-      setText(sId, t + ' °C');
-    } else {
-      setText(vId, 'N/A');
-      setText(sId, '');
-    }
-  }
-  setLevel('lcl','val-lcl','sub-lcl');
-  setLevel('lfc','val-lfc','sub-lfc');
-  setLevel('el', 'val-el', 'sub-el');
 
   renderTable(_meta.levels || []);
 }
 
-/* ── 테이블 렌더 ────────────────────────────────────────────────────────────── */
+/* 관측 레벨 표 */
+const STD_LEVELS = new Set([1000, 925, 850, 700, 500, 400, 300, 250, 200, 150, 100]);
+
 function renderTable(levels) {
   const tbody = $('level-tbody');
   tbody.innerHTML = '';
   if (!levels.length) {
-    const tr=document.createElement('tr');
-    const td=document.createElement('td');
-    td.colSpan=6; td.className='na';
-    td.style.cssText='text-align:center;padding:1rem';
-    td.textContent='레벨 데이터 없음';
-    tr.appendChild(td); tbody.appendChild(tr); return;
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">레벨 데이터 없음</td></tr>';
+    return;
   }
-  const fmt = (v,d=1) => (v===null||v===undefined) ? null : Number(v).toFixed(d);
+  const fmt = (v, d) => (v === null || v === undefined) ? null : Number(v).toFixed(d);
   const COLS = [
-    lv => fmt(lv.PA),
-    lv => (lv.GH!==null&&lv.GH!==undefined) ? String(lv.GH) : null,
-    lv => fmt(lv.TA),
-    lv => fmt(lv.TD),
-    lv => (lv.WD!==null&&lv.WD!==undefined) ? String(lv.WD) : null,
-    lv => fmt(lv.WS),
+    lv => fmt(lv.PA, 1),
+    lv => fmt(lv.GH, 0),
+    lv => fmt(lv.TA, 1),
+    lv => fmt(lv.TD, 1),
+    lv => fmt(lv.WD, 0),
+    lv => fmt(lv.WS, 1),
   ];
+  const frag = document.createDocumentFragment();
   for (const lv of levels) {
     const tr = document.createElement('tr');
-    COLS.forEach(fn => {
-      const td=document.createElement('td');
-      const val=fn(lv);
-      if (val===null) { td.className='na'; td.textContent='—'; }
-      else td.textContent=val;
+    if (STD_LEVELS.has(lv.PA)) tr.className = 'std';
+    for (const fn of COLS) {
+      const td = document.createElement('td');
+      const val = fn(lv);
+      if (val === null) { td.className = 'na'; td.textContent = '-'; }
+      else td.textContent = val;
       tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
+    }
+    frag.appendChild(tr);
   }
+  tbody.appendChild(frag);
 }
 
-/* ── 테이블 다운로드 ────────────────────────────────────────────────────────── */
-const COL_HEADERS = ['기압(hPa)','고도(m)','기온(°C)','이슬점(°C)','풍향(°)','풍속(m/s)'];
-const COL_KEYS    = ['PA','GH','TA','TD','WD','WS'];
-const COL_W_XLSX  = [12,10,10,12,10,12];
+/* 표 다운로드 */
+const COL_HEADERS = ['기압(hPa)', '고도(m)', '기온(°C)', '이슬점(°C)', '풍향(°)', '풍속(m/s)'];
+const COL_KEYS    = ['PA', 'GH', 'TA', 'TD', 'WD', 'WS'];
+const COL_W_XLSX  = [12, 10, 10, 12, 10, 12];
 
 function downloadTable(format) {
-  if (!_meta||!_meta.levels) { showToast('⚠ 데이터가 아직 로드되지 않았습니다'); return; }
+  if (!_meta || !_meta.levels) { showToast('데이터가 아직 로드되지 않았습니다'); return; }
   const levels  = _meta.levels;
-  const dateStr = (_meta.generated||'unknown').replace(/[:/\s]/g,'_');
-  const fname   = `skewt_levels_${dateStr}`;
-  if (format==='csv')       _dlCSV(levels, fname+'.csv');
-  else if (format==='txt')  _dlTXT(levels, fname+'.txt');
-  else                      _dlXLSX(levels, fname+'.xlsx');
+  const fname   = `skewt_levels_${_meta.file_date || 'unknown'}`;
+  if (format === 'csv')      _dlCSV(levels, fname + '.csv');
+  else if (format === 'txt') _dlTXT(levels, fname + '.txt');
+  else                       _dlXLSX(levels, fname + '.xlsx');
 }
 
 function _dlCSV(levels, filename) {
   const rows = [COL_HEADERS.join(',')];
   for (const lv of levels)
-    rows.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':String(lv[k])).join(','));
-  _triggerDownload(new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}), filename);
-  showToast('📄 CSV 다운로드 시작');
+    rows.push(COL_KEYS.map(k => (lv[k] === null || lv[k] === undefined) ? '' : String(lv[k])).join(','));
+  _triggerDownload(new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }), filename);
+  showToast(`${filename} 다운로드`);
 }
 
 function _dlTXT(levels, filename) {
-  const COL_W=[10,8,8,10,8,10];
-  const pad=(s,w)=>String(s??'—').padStart(w);
-  const line=COL_HEADERS.map((h,i)=>h.padStart(COL_W[i])).join('  ');
-  const sep='-'.repeat(line.length);
-  const rows=[
-    `Skew-T Log-P Observation Levels`,
-    `Generated: ${_meta.generated||''}`, sep, line, sep,
+  const COL_W = [10, 8, 8, 10, 8, 10];
+  const pad = (s, w) => String(s ?? '-').padStart(w);
+  const line = COL_HEADERS.map((h, i) => h.padStart(COL_W[i])).join('  ');
+  const sep = '-'.repeat(line.length);
+  const rows = [
+    'Skew-T Log-P Observation Levels',
+    `Generated: ${_meta.generated || ''}`, sep, line, sep,
   ];
-  for (const lv of levels) rows.push(COL_KEYS.map((k,i)=>pad(lv[k],COL_W[i])).join('  '));
+  for (const lv of levels) rows.push(COL_KEYS.map((k, i) => pad(lv[k], COL_W[i])).join('  '));
   rows.push(sep);
-  _triggerDownload(new Blob([rows.join('\r\n')],{type:'text/plain;charset=utf-8'}), filename);
-  showToast('📄 TXT 다운로드 시작');
+  _triggerDownload(new Blob([rows.join('\r\n')], { type: 'text/plain;charset=utf-8' }), filename);
+  showToast(`${filename} 다운로드`);
 }
 
 function _dlXLSX(levels, filename) {
-  if (typeof XLSX==='undefined') { showToast('⚠ SheetJS 로드 실패'); return; }
-  const wsData=[COL_HEADERS];
-  for (const lv of levels) wsData.push(COL_KEYS.map(k=>(lv[k]===null||lv[k]===undefined)?'':lv[k]));
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=COL_W_XLSX.map(w=>({wch:w}));
-  const range=XLSX.utils.decode_range(ws['!ref']);
-  for (let c=range.s.c;c<=range.e.c;c++) {
-    const addr=XLSX.utils.encode_cell({r:0,c});
-    if (!ws[addr]) continue;
-    ws[addr].s={font:{bold:true},fill:{fgColor:{rgb:'1E1E1E'}}};
-  }
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'관측 레벨');
-  const metaRows=[
-    ['항목','값'],
-    ['생성 시각',_meta.generated||''],
-    ['CAPE (J/kg)',_meta.cape??''],['CIN (J/kg)',_meta.cin??''],
-    ['LCL 기압 (hPa)',_meta.lcl_p??''],['LCL 기온 (°C)',_meta.lcl_t??''],
-    ['LFC 기압 (hPa)',_meta.lfc_p??''],['LFC 기온 (°C)',_meta.lfc_t??''],
-    ['EL 기압 (hPa)',_meta.el_p??''], ['EL 기온 (°C)',_meta.el_t??''],
-    ['PWAT (mm)',_meta.pwat??''],['SHR06 (m/s)',_meta.shr06??''],['SRH (m²/s²)',_meta.srh??''],
+  if (typeof XLSX === 'undefined') { showToast('SheetJS를 불러오지 못했습니다'); return; }
+  const wsData = [COL_HEADERS];
+  for (const lv of levels) wsData.push(COL_KEYS.map(k => (lv[k] === null || lv[k] === undefined) ? '' : lv[k]));
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = COL_W_XLSX.map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '관측 레벨');
+  const metaRows = [
+    ['항목', '값'],
+    ['생성 시각', _meta.generated || ''],
+    ['CAPE (J/kg)', _meta.cape ?? ''], ['CIN (J/kg)', _meta.cin ?? ''],
+    ['LCL 기압 (hPa)', _meta.lcl_p ?? ''], ['LCL 기온 (°C)', _meta.lcl_t ?? ''],
+    ['LFC 기압 (hPa)', _meta.lfc_p ?? ''], ['LFC 기온 (°C)', _meta.lfc_t ?? ''],
+    ['EL 기압 (hPa)', _meta.el_p ?? ''],   ['EL 기온 (°C)', _meta.el_t ?? ''],
+    ['PWAT (mm)', _meta.pwat ?? ''], ['SHR06 (m/s)', _meta.shr06 ?? ''], ['SRH (m²/s²)', _meta.srh ?? ''],
   ];
-  const wsMeta=XLSX.utils.aoa_to_sheet(metaRows);
-  wsMeta['!cols']=[{wch:18},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,wsMeta,'파라미터');
+  const wsMeta = XLSX.utils.aoa_to_sheet(metaRows);
+  wsMeta['!cols'] = [{ wch: 18 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(wb, wsMeta, '파라미터');
   XLSX.writeFile(wb, filename);
-  showToast('📊 XLSX 다운로드 시작');
+  showToast(`${filename} 다운로드`);
 }
 
 function _triggerDownload(blob, filename) {
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 }
 
-/* ── 그래프 이미지 로드 ─────────────────────────────────────────────────────── */
-function loadImage() {
-  const img  = $('plot-img');
-  const phld = $('plot-placeholder');
-
-  // ?t= 캐시 버스터 제거 — 브라우저가 src 변경을 다운로드로 오인하는 문제 방지
-  // 5분 자동갱신은 페이지 리로드로 대신 처리
-  const fname = _imgTheme === 'dark' ? 'skewt_dark.png' : 'skewt_light.png';
-
-  // 이미 같은 파일이면 재요청 안 함
-  if (img.src.endsWith(fname) && img.style.display === 'block') return;
-
-  img.onload  = null;
-  img.onerror = null;
-  img.style.opacity = '0';
-
-  let _fallbackTried = false;
-
-  img.onload = () => {
-    phld.style.display = 'none';
-    img.style.display  = 'block';
-    img.style.opacity  = '1';
-  };
-
-  img.onerror = () => {
-    if (!_fallbackTried) {
-      _fallbackTried = true;
-      // 다크 실패 → 라이트, 라이트 실패 → latest
-      const fallback = _imgTheme === 'dark' ? 'skewt_light.png' : 'skewt_latest.png';
-      img.src = fallback;
-    } else {
-      phld.classList.remove('loading');
-      phld.innerHTML = '<span>⚠ 그래프를 불러올 수 없습니다.<br>Actions를 먼저 실행해 주세요.</span>';
-    }
-  };
-
-  img.src = fname;
-}
-
-/* ── 파라미터 카드 shimmer + 3D tilt ─────────────────────────────────────── */
-document.querySelectorAll('.param-card').forEach(card => {
-  const shimmer = document.createElement('div');
-  shimmer.className = 'shimmer';
-  card.prepend(shimmer);
-  card.addEventListener('mousemove', e => {
-    const r  = card.getBoundingClientRect();
-    const x  = e.clientX - r.left;
-    const y  = e.clientY - r.top;
-    const dx = (x / r.width  - .5) * 2;
-    const dy = (y / r.height - .5) * 2;
-    card.style.setProperty('--mx', (x / r.width  * 100).toFixed(1) + '%');
-    card.style.setProperty('--my', (y / r.height * 100).toFixed(1) + '%');
-    card.style.transform =
-      `perspective(600px) rotateX(${(-dy*6).toFixed(2)}deg) rotateY(${(dx*6).toFixed(2)}deg) translateY(-3px)`;
-  });
-  card.addEventListener('mouseleave', () => { card.style.transform = ''; });
-});
-
-/* ── 버튼 ripple ─────────────────────────────────────────────────────────── */
-document.querySelectorAll('.btn').forEach(btn => {
-  btn.addEventListener('click', e => {
-    const r    = btn.getBoundingClientRect();
-    const size = Math.max(r.width, r.height) * 2;
-    const el   = document.createElement('span');
-    el.className = 'ripple';
-    el.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-r.left-size/2}px;top:${e.clientY-r.top-size/2}px`;
-    btn.appendChild(el);
-    setTimeout(() => el.remove(), 600);
-  });
-});
-
-/* ── 스크롤 reveal ───────────────────────────────────────────────────────── */
-document.querySelectorAll('.plot-card, .table-section, .params-grid, .status-bar')
-  .forEach(el => el.classList.add('reveal'));
-const _io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) { e.target.classList.add('visible'); _io.unobserve(e.target); }
-  });
-}, { threshold: 0.08 });
-document.querySelectorAll('.reveal').forEach(el => _io.observe(el));
-
-/* ── 초기 실행 ──────────────────────────────────────────────────────────────── */
+switchImgTheme(_imgTheme);
 loadMeta();
-loadImage();
-setInterval(()=>{ loadMeta(); }, 5*60*1000);  // 이미지는 매일 1회만 갱신
+setInterval(loadMeta, 5 * 60 * 1000);
 </script>
 </body>
 </html>
