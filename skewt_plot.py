@@ -111,12 +111,12 @@ def kfont(size: float = 10, bold: bool = False) -> fm.FontProperties:
 
 # 테마 팔레트
 _DARK: dict = dict(
-    bg        = "#0d1117",
-    surface   = "#161b22",
-    border    = "#30363d",
-    text      = "#e6edf3",
-    subtext   = "#8b949e",
-    grid      = "#21262d",
+    bg        = "#0a0a0a",
+    surface   = "#141414",
+    border    = "#2e2e2e",
+    text      = "#ededed",
+    subtext   = "#a1a1a1",
+    grid      = "#222222",
     temp      = "#ff6b6b",
     dew       = "#4fc3f7",
     parcel    = "#ffd54f",
@@ -124,11 +124,11 @@ _DARK: dict = dict(
     moist_adi = "#26a69a",
     mix_line  = "#ffa726",
     cape_fill = "#ff6b6b",
-    cin_fill  = "#4fc3f7",
+    cin_fill  = "#8a8a8a",
     lcl_c     = "#ffe082",
     lfc_c     = "#a5d6a7",
     el_c      = "#80deea",
-    box_bg    = "#161b22",
+    box_bg    = "#141414",
 )
 
 _LIGHT: dict = dict(
