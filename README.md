@@ -34,9 +34,9 @@ docs/
 README 아래쪽의 `SKEWT_AUTO_START` ~ `SKEWT_AUTO_END` 사이는 스크립트가 매번 덮어씁니다.
 
 <!-- SKEWT_AUTO_START -->
-### 최신 단열선도 (2026년 10월 25일 11:52 KST)
+### 최신 단열선도 (2026년 10월 26일 11:55 KST)
 
-![CAPE](https://img.shields.io/badge/CAPE-0%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN-0%20J%2Fkg-blue)
+![CAPE](https://img.shields.io/badge/CAPE-0%20J%2Fkg-orange)  ![CIN](https://img.shields.io/badge/CIN--50%20J%2Fkg-blue)
 
 | 다크 | 라이트 |
 |------|--------|
